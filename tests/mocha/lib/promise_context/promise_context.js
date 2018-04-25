@@ -5,9 +5,9 @@
 // Load external packages
 const Chai    = require('chai')
   , assert    = Chai.assert
-  , rootPrefix  = "../../../.."
-  , Core    = require( rootPrefix + "/index" )
-  , PromiseContext  = Core.OSTPromise.Context
+  , rootPrefix      = "../../../.."
+  , OSTBase         = require( rootPrefix + "/index" )
+  , PromiseContext  = OSTBase.OSTPromise.Context
 ;
 
 // For the purpose of test, set default timeout to 3 seconds.

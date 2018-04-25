@@ -4,8 +4,8 @@
 const Chai        = require('chai')
     , assert      = Chai.assert
     , rootPrefix  = "../../../.."
-    , Core        = require( rootPrefix + "/index" )
-    , Logger      = Core.Logger
+    , OSTBase     = require( rootPrefix + "/index" )
+    , Logger      = OSTBase.Logger
 ;
 
 const SUPPORTED_LOG_LEVEL_KEYS = ["OFF", "FATAL", "ERROR", "WARN", "INFO", "DEBUG", "TRACE", "ALL"];

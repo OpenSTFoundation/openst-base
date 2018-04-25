@@ -1,4 +1,4 @@
-# OpenST Core - Collection of Utilities & Helpers used by [OpenST network](https://simpletoken.org)
+# OpenST Base - Collection of Utilities & Helpers used by [OpenST network](https://simpletoken.org)
 
 While OpenST 0.9 is available as-is for anyone to use, we caution that this is early stage software and under heavy ongoing development and improvement. Please report bugs and suggested improvements.
 
@@ -12,25 +12,25 @@ npm install @openstfoundation/openst-base --save
 
 # OSTWeb3 Usage
 ```bash
-const OSTCore    = require('@openstfoundation/openst-base')
+const OSTBase    = require('@openstfoundation/openst-base')
     , wsEndPoint = "ws://127.0.0.1:8546"
     , httpEndPoint = "http://127.0.0.1:8545"
 ;
 
 // The below instance of web3 uses OstWSProvider.
 // OstWSProvider automatically tries to reconnect when connection is broken.
-let wsWeb3 = new OSTCore.OSTWeb3( wsEndPoint );
+let wsWeb3 = new OSTBase.OSTWeb3( wsEndPoint );
 
 // The below instance is same as new Web3( httpEndPoint );
-let httpWeb3 = new OSTCore.OSTWeb3( httpEndPoint );
+let httpWeb3 = new OSTBase.OSTWeb3( httpEndPoint );
 
 
 ```
 
 # PromiseQueueManager Usage
 ```bash
-const OSTCore = require('@openstfoundation/openst-base')
-    , logger  = new OSTCore.Logger("my_module_name")
+const OSTBase = require('@openstfoundation/openst-base')
+    , logger  = new OSTBase.Logger("my_module_name")
 ;
 
 const queueManagerOptions = {
@@ -124,7 +124,7 @@ const promiseExecutor = function ( resolve, reject, params, promiseContext ) {
   }, 1000);
 }
 
-const manager = new OSTCore.OSTPromise.QueueManager( promiseExecutor, queueManagerOptions);
+const manager = new OSTBase.OSTPromise.QueueManager( promiseExecutor, queueManagerOptions);
 
 for( var cnt = 0; cnt < 50; cnt++ ) {
   manager.createPromise( {"cnt": (cnt + 1) } );
@@ -135,8 +135,8 @@ for( var cnt = 0; cnt < 50; cnt++ ) {
 
 # OpenST Logger Usage
 ```bash
-const OSTCore = require('@openstfoundation/openst-base')
-    , Logger  = OSTCore.Logger
+const OSTBase = require('@openstfoundation/openst-base')
+    , Logger  = OSTBase.Logger
     , logger  = new Logger("my_module_name", Logger.LOG_LEVELS.TRACE)
 ;
 
