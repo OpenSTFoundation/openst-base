@@ -48,6 +48,7 @@ const expectedOutValues = {
   , confirmationEventNumber   : 6
   , errorEvent                : false
   , didResolveTxPromise       : true
+  , receiptStatus             : "0x1"
 };
 
 // Test-Case Builder.
@@ -119,7 +120,9 @@ const sendTransactionWith = function ( web3 ) {
         })
     })
     .then( function ( receipt ) {
+      receipt = receipt || {};
       outValues.didResolveTxPromise = true;
+      outValues.receiptStatus = receipt.status;
       return outValues;
     })
 
