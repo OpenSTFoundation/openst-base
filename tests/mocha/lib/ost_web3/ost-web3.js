@@ -21,14 +21,15 @@ const Chai            = require('chai')
     , httpEndPoint      = gethManager.getHttpEndPoint()
     , wsEndPoint        = gethManager.getWebSocketEndPoint()
 
+    , describePrefix    = "lib/ost_web3/ost-web3"
 ;
 
 
 
 
 // Some Constants. All times are in milliseconds.
-const avg_block_time              = 3000  /* Avg time required to mine a block */
-    , no_of_conformation_blocks   = 15    /* We expect receipt of transactions to be received in these many blocks. */
+const avg_block_time              = 3000    /* Avg time required to mine a block */
+    , no_of_conformation_blocks   = 4 + 6   /* We expect receipt of transactions to be received in these many blocks. */
     , buffer_time_per_describe    = 5000
     , max_time_per_transaction    = (avg_block_time * no_of_conformation_blocks) + buffer_time_per_describe
     , max_time_for_geth_start     = 20000 /* Time Required for geth to start */
@@ -85,7 +86,6 @@ const sendTransactionWith = function ( web3 ) {
     }
   ;
 
-  logger.info("txParams", txParams);
 
   let executionPromise = web3.eth.personal.unlockAccount( sender, passphrase )
     .then( function () {
@@ -169,7 +169,7 @@ let testGroups = []
 ;
 
 const startGethTestGroup = function () {
-  describe("lib/ost_web3/ost-web3 :: Start Geth", function () {
+  describe(describePrefix + " :: Start Geth", function () {
     it("should start geth.", async function () { 
       this.timeout( max_time_for_geth_start );
       await gethManager
@@ -187,7 +187,7 @@ const startGethTestGroup = function () {
 };
 
 const createAndValidateWeb3Instances = function () {
-  describe("lib/ost_web3/ost-web3 :: create and validate web3 Instances.", function () {
+  describe(describePrefix + " :: create and validate web3 Instances.", function () {
     web3Instances.web3WithHttp    = web3WithHttp    = new Web3( httpEndPoint );
     web3Instances.ostWeb3WithHttp = ostWeb3WithHttp = new OstWeb3( httpEndPoint );
     web3Instances.web3WithWS      = web3WithWS      = new Web3( wsEndPoint );
@@ -210,7 +210,7 @@ const createAndValidateWeb3Instances = function () {
 };
 
 const sendTransactionTestGroup = function () { 
-  describe("lib/ost_web3/ost-web3 :: perform sendTransaction using all web3 instances.", function () {
+  describe(describePrefix + " :: perform sendTransaction using all web3 instances.", function () {
     let web3OutValues = {}
       , web3Key
       , currWeb3
@@ -261,8 +261,8 @@ const sendTransactionTestGroup = function () {
 };
 
 
-const disconnectAndReconnect = function () {
-  describe("lib/ost_web3/ost-web3 :: Stop Geth", function () {
+const stopGethTestGroup = function () {
+  describe(describePrefix + " :: Stop Geth", function () {
     it("should stop geth.", async function () { 
       this.timeout( max_time_for_geth_stop );
       await gethManager
@@ -288,9 +288,10 @@ const disconnectAndReconnect = function () {
 testGroups.push( startGethTestGroup );
 testGroups.push( createAndValidateWeb3Instances );
 testGroups.push( sendTransactionTestGroup );
-testGroups.push( disconnectAndReconnect );
+testGroups.push( stopGethTestGroup );
 testGroups.push( startGethTestGroup );
 testGroups.push( sendTransactionTestGroup );
+testGroups.push( stopGethTestGroup );
 
 const executeNextTestGroup = function () {
   if ( testGroups.length ) {
@@ -300,10 +301,3 @@ const executeNextTestGroup = function () {
 };
 
 executeNextTestGroup();
-
-
-
-
-
-
-
