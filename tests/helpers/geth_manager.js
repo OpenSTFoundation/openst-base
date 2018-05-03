@@ -5,11 +5,16 @@ const { spawn }         = require('child_process')
     , path              = require("path")
     , rootPrefix        = "../.."
     , run_chain_path    = path.resolve(__dirname, rootPrefix + "/tests/scripts/run_chain.sh" )
+    , start_time_buffer = 10000
+    , stop_time_buffer  = 3000
 ;
 
 const GethManager = function () {
   const oThis = this;
+
   oThis.start();
+  oThis.bindSignalHandlers();
+  
 };
 
 GethManager.prototype = {
@@ -39,8 +44,13 @@ GethManager.prototype = {
 
         // Give some time to geth to start.
         setTimeout( function () {
-          resolve( true );
-        }, 10000 );
+          if ( oThis.isAlive() ) {
+            resolve( true );  
+          } else {
+            reject(new Error("Failed to start geth.") );
+          }
+          
+        }, start_time_buffer );
 
       })
       .then( function () {
@@ -70,8 +80,12 @@ GethManager.prototype = {
         oThis.gethProcess.kill();
         // This is dummy code.
         setTimeout( function () {
-          resolve( true );
-        }, 10000 );
+          if ( !oThis.isAlive() ) {
+            resolve( true );  
+          } else {
+            reject(new Error("Failed to stop geth.") );
+          }
+        }, stop_time_buffer );
       })
       .then( function () {
         // Finally, _startPromise should be set to null.
@@ -104,8 +118,21 @@ GethManager.prototype = {
     // This is dummy code.
     return process.env.OST_UTILITY_GETH_RPC_PROVIDER;
   }
+  , bindSignalHandlers: function () {
+    const oThis = this;
 
+    const sigHandler = function () {
+      console.log("GethManager :: sigHandler triggered!. Stoping Geth Now.");
+      oThis.stop();
+    };
+
+    process.on('SIGINT', sigHandler);
+    process.on('SIGTERM', sigHandler);
+
+  }
 }
+
+
 
 
 module.exports = new GethManager();
