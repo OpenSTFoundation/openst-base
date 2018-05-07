@@ -1,0 +1,36 @@
+dist: trusty
+language: node_js
+sudo: required
+branches:
+  only:
+  - master
+  - develop
+  - rachin/ostweb3/testcases
+notifications:
+  email:
+    recipients:
+      - ci.report@ost.com
+    on_success: always
+    on_failure: always
+node_js:
+  - "8"
+services:
+  - mysql
+before_install:
+  - mysql -e 'CREATE DATABASE payment_development;'
+  - sudo apt-get update 
+  - sudo apt-get install nodejs 
+  - sudo apt-get install npm  
+  - sudo apt-get install software-properties-common
+  - sudo add-apt-repository -y ppa:ethereum/ethereum
+  - sudo apt-get update
+  - sudo bash tests/scripts/install_geth_1_8_3.sh
+  - geth version
+install: 
+  - npm install 
+before_script:  
+  - node tests/scripts/setup_geth.js
+script:  
+  - node_modules/mocha/bin/mocha tests/mocha/lib/logger/custom_console_logger.js --exit --timeout 10000
+after_script:
+  - kill $(ps aux | grep 'geth' | awk '{print $2}')
