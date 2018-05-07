@@ -4,22 +4,60 @@
 const { spawn }         = require('child_process')
     , path              = require("path")
     , rootPrefix        = "../.."
-    , run_chain_path    = path.resolve(__dirname, rootPrefix + "/tests/scripts/run_chain.sh" )
     , start_time_buffer = 10000
     , stop_time_buffer  = 3000
+    , init_time_buffer  = 20000
 ;
+
+const gethArgs = {
+  networkid         : "20171010"
+  , datadir         : path.resolve(__dirname, rootPrefix + "/tests/scripts/st-poa")
+  , port            : "30301"
+  , gasprice        : "0"
+  , targetgaslimit  : "100000000"
+  , etherbase       : "0"
+  , unlock          : "0"
+  , password        : path.resolve(__dirname, rootPrefix + "/tests/scripts/pw" )
+  , maxpeers        : "0"
+  , mine            : ""
+  , minerthreads    : "4"
+
+  //RPC-CONFIG
+  , rpc       : ""
+  , rpcapi    : "eth,net,web3,personal,txpool"
+  , rpcport   : "12546"
+  , rpcaddr   : "127.0.0.1"
+
+
+  //WS-CONFIG
+  , ws        : ""
+  , wsport    : "13546"
+  , wsorigins : "'*'"
+  , wsaddr    : "127.0.0.1"
+  , wsapi     : "eth,net,web3,personal,txpool"
+};
+
+const gethSetupConfig = {
+  poaGenesisAbsolutePath  : path.resolve(__dirname, rootPrefix + "/tests/scripts/poa-genesis.json")
+  , preInitArgsToIgnore   : ["etherbase", "unlock", "password", "mine", "minerthreads"]
+  , passphrase            : "testtest"
+  , noOfAddresses         : 3
+  , datadir               : gethArgs.datadir
+  , passphraseFilePath    : gethArgs.password
+};
 
 const GethManager = function () {
   const oThis = this;
 
-  oThis.start();
+  oThis.gethArgs        = Object.assign( {}, gethArgs );
+  oThis.gethSetupConfig = Object.assign( {}, gethSetupConfig );
   oThis.bindSignalHandlers();
-  
+
 };
 
 GethManager.prototype = {
   constructor: GethManager
-
+  , gethArgs  : null
   , gethProcess: null
   , isAlive: function () {
     const oThis = this;
@@ -28,7 +66,7 @@ GethManager.prototype = {
 
   , _startPromise : null
   , startWaitTime : 5000
-  , start: function () {
+  , start: function ( argKeysToIgnore ) {
     const oThis = this;
 
     oThis._startPromise = oThis._startPromise || new Promise( function ( resolve, reject) {
@@ -36,9 +74,40 @@ GethManager.prototype = {
           resolve( true );
         }
 
-        let gethProcess = oThis.gethProcess = spawn("bash", [run_chain_path], { shell: true });
+        let gethArgsArray = []
+          , argKey
+          , argValue
+        ;
+
+
+        argKeysToIgnore = argKeysToIgnore || [];
+        
+
+        for( argKey in oThis.gethArgs ) {
+          if ( !( oThis.gethArgs.hasOwnProperty( argKey ) ) )  {
+            continue;
+          }
+          if ( argKeysToIgnore.indexOf( argKey ) >= 0 ) {
+            //Ignore this arg.
+            continue;
+          }
+
+          //Push the key
+          gethArgsArray.push( "--" + argKey );
+
+          argValue = oThis.gethArgs[ argKey ];
+
+          if ( argValue && argValue.length ) {
+            //Push the value.
+            gethArgsArray.push( argValue );
+          }
+        }
+
+        console.log("Starting geth with command :: \ngeth", gethArgsArray.join(" "), "\n");
+
+        let gethProcess = oThis.gethProcess = spawn("geth", gethArgsArray, { shell: true });
         gethProcess.on("exit", function (code, signal) {
-          console.log("gethProcess has exitted!  code:", code, "signal", signal, "run_chain_path:", run_chain_path);
+          console.log("gethProcess has exitted!  code:", code, "signal", signal, "geth command:\n geth", gethArgsArray.join(" "), "\n");
           oThis.gethProcess = null;
         });
 
@@ -100,23 +169,20 @@ GethManager.prototype = {
     return oThis._stopPromise;
   }
 
-  , getTransactionAddressInfo: function () {
-    // This is dummy code.
-    return {
-      sender        : process.env.OST_UTILITY_CHAIN_OWNER_ADDR
-      , passphrase  : process.env.OST_UTILITY_CHAIN_OWNER_PASSPHRASE
-      , recipient   : process.env.OST_FOUNDATION_ADDR
-    };
-  }
-
   , getWebSocketEndPoint: function () {
-    // This is dummy code.
-    return process.env.OST_UTILITY_GETH_WS_PROVIDER;
+    const oThis     = this
+        , gethArgs  = oThis.gethArgs
+    ;
+
+    return "ws://" + gethArgs["wsaddr"] + ":" + gethArgs["wsport"];
   }
 
   , getHttpEndPoint: function () {
-    // This is dummy code.
-    return process.env.OST_UTILITY_GETH_RPC_PROVIDER;
+    const oThis     = this
+        , gethArgs  = oThis.gethArgs
+    ;
+
+    return "http://" + gethArgs["rpcaddr"] + ":" + gethArgs["rpcport"];
   }
   , bindSignalHandlers: function () {
     const oThis = this;
@@ -130,7 +196,99 @@ GethManager.prototype = {
     process.on('SIGTERM', sigHandler);
 
   }
-}
+  , __sender: null
+  , __senderPassphrase: null
+  , __recipient: null
+  , getTransactionAddressInfo: function () {
+    const oThis = this;
+    if ( !oThis.__sender || !oThis.__senderPassphrase || !oThis.__recipient ) {
+      oThis.populateTransactionAddressInfo();
+    }
+    // This is dummy code.
+    return {
+      sender        : oThis.__sender
+      , passphrase  : oThis.__senderPassphrase
+      , recipient   : oThis.__recipient
+    };
+  }
+  , populateTransactionAddressInfo: function () {
+    const oThis = this
+        , gethSetupConfig         = oThis.gethSetupConfig
+        , poaGenesisAbsolutePath  = gethSetupConfig.poaGenesisAbsolutePath
+        , addresses     = ["__sender", "__recipient"]
+    ;
+
+    let poaGenesis    = require( poaGenesisAbsolutePath )
+      , genesisAlloc  = poaGenesis.alloc
+      , addrLen       = addresses.length
+      , gKey
+    ;
+
+    for( gKey in genesisAlloc ) {
+      if ( !( genesisAlloc.hasOwnProperty( gKey ) ) ) {
+        continue;
+      }
+      if ( !addrLen-- ) {
+        break;
+      }
+      oThis[ addresses[addrLen] ] = gKey;
+    }
+
+    oThis.__senderPassphrase = gethSetupConfig.passphrase;
+  }
+  , gethSetupConfig : null
+  , getGethSetupConfig: function () {
+    const oThis = this;
+    return oThis.gethSetupConfig;
+  }
+
+  , __initPromise: null
+  , hasInitialized: false
+  , initGeth: function () {
+    const oThis = this;
+
+    oThis.__initPromise = oThis.__initPromise || new Promise( function( resolve, reject ) {
+      if ( oThis.isAlive() ) {
+        reject( new Error( "Geth already running. Can not initialize it" ) );
+      }
+
+      let gethArgs        = oThis.gethArgs
+        , gethSetupConfig = oThis.gethSetupConfig
+        , gethArgsArray   = [ 
+          , "-rf"
+          , gethArgs["datadir"] + "/geth"
+          , "&& geth"
+          , "--datadir"
+          , gethArgs["datadir"]
+          , "init"
+          , gethSetupConfig["poaGenesisAbsolutePath"]
+        ]
+      ;
+
+      let gethProcess = oThis.gethProcess = spawn("rm", gethArgsArray, { shell: true });
+      gethProcess.on("exit", function (code, signal) {
+        console.log("gethProcess has exitted!  code:", code, "signal", signal, "geth command:\n rm", gethArgsArray.join(" "), "\n");
+        oThis.gethProcess = null;
+
+        if ( !code ) {
+          resolve( true );
+        } else {
+          reject( new Error("geth init exitted with code " + code) );
+        }
+      });
+
+      // Give some time to geth to start.
+      setTimeout( function () {
+        if ( oThis.isAlive() ) {
+          reject(new Error("Failed to initialize geth.") );
+        }
+        oThis.__initPromise = null;
+      }, init_time_buffer );
+    });
+    return oThis.__initPromise;
+  }
+};
+
 
 
 

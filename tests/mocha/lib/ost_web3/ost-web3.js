@@ -292,6 +292,11 @@ testGroups.push( stopGethTestGroup );
 testGroups.push( startGethTestGroup );
 testGroups.push( sendTransactionTestGroup );
 testGroups.push( stopGethTestGroup );
+testGroups.push( function () {
+  setTimeout( function () {
+    process.exit(0);  
+  }, 2000);
+});
 
 const executeNextTestGroup = function () {
   if ( testGroups.length ) {

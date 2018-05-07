@@ -373,6 +373,11 @@ testGroups.push( startGethTestGroup );
 testGroups.push( activeWeb3InstancesCheck );
 testGroups.push( sendTransactionTestGroup );
 testGroups.push( stopGethTestGroup );
+testGroups.push( function () {
+  setTimeout( function () {
+    process.exit(0);  
+  }, 2000);
+});
 
 
 const executeNextTestGroup = function () {
