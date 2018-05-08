@@ -136,6 +136,7 @@ const sendTransactionWith = function ( web3 ) {
 };
 
 const verifyResult = function ( result ) {
+  result = result || {};
   let eKey;
   for( eKey in expectedOutValues ) {
     if ( !expectedOutValues.hasOwnProperty( eKey ) ) {
@@ -214,7 +215,6 @@ const createAndValidateWeb3Instances = function () {
         instanceName = "will_disconnect_" + instanceName;
         willDisconnectWeb3Instances[ instanceName ] = web3;
         web3.currentProvider.options.maxReconnectTries = 1;
-        console.log("web3.currentProvider", web3.currentProvider);
 
       }
 
@@ -285,6 +285,7 @@ const sendTransactionTestGroup = function () {
         
         return function ( done ) {
           this.timeout( validateAfter + 1000 );
+
           setTimeout( function () {
             verifyResult( web3OutValues[ web3Key ], web3Key );
             if ( callNextTestGroup ) {

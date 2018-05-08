@@ -153,20 +153,23 @@ GethManager.prototype = {
           resolve( true );
         }
 
+        oThis.gethProcess.kill("SIGTERM");
+
         let killArgsArray = [
-          oThis.gethProcess.pid
+          "-9"
+          ,oThis.gethProcess.pid
         ];
 
         let killProcess = spawn("kill", killArgsArray, { shell: true} );
         killProcess.on("exit", function (code, signal) {
-          console.log("[GETH-STOP] Geth process should be dead now. command: kill", killArgsArray.join(" ") );
+          console.log("[GETH-STOP] Geth process should be dead now. command: kill", killArgsArray.join(" "), "kill command exit-code", code );
           // let psProcess = spawn("ps", ["aux", "|", "grep", "'geth'", "|", "awk", "'{print $2}'"], {
           //   shell: true
           //   , stdio: [ 'ignore', process.stdout, process.stderr ]
           // })
         })
 
-        // oThis.gethProcess.kill();
+        
         // This is dummy code.
         setTimeout( function () {
           if ( !oThis.isAlive() ) {
