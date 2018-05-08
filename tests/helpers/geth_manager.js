@@ -260,10 +260,10 @@ GethManager.prototype = {
 
       let gethArgs        = oThis.gethArgs
         , gethSetupConfig = oThis.gethSetupConfig
-        , gethArgsArray   = [ 
-          , "-rf"
+        , rmArgsArray     = [ "-rf"
           , gethArgs["datadir"] + "/geth"
-          , "&& geth"
+        ]
+        , gethArgsArray   = [ 
           , "--datadir"
           , gethArgs["datadir"]
           , "init"
@@ -271,16 +271,27 @@ GethManager.prototype = {
         ]
       ;
 
-      let gethProcess = oThis.gethProcess = spawn("rm", gethArgsArray, oThis.gethSpawnOptions );
-      let gethExitCode = "STILL_RUNNING";
-      gethProcess.on("exit", function (code, signal) {
-        console.log("gethProcess has exitted!  code:", code, "signal", signal, "geth command:\n rm", gethArgsArray.join(" "), "\n");
-        oThis.gethProcess = null;
-        if ( !code ) {
-          gethExitCode = "EXIT_WITHOUT_ERROR";
-        } else {
-          gethExitCode = "EXIT_WITH_ERROR_CODE_" + String ( code );
-        }
+      let gethProcess
+        , gethExitCode
+      ;
+
+
+      // Clean up file.
+      let removeFilesProcess = spawn("rm", rmArgsArray, {shell: true});
+      removeFilesProcess.on("exit", function (code, signal) {
+        
+        // Now init geth.
+        gethProcess = oThis.gethProcess = spawn("geth", gethArgsArray, oThis.gethSpawnOptions );
+        gethExitCode = "STILL_RUNNING";
+        gethProcess.on("exit", function (code, signal) {
+          console.log("gethProcess has exitted!  code:", code, "signal", signal, "geth command:\n rm", gethArgsArray.join(" "), "\n");
+          if ( !code ) {
+            gethExitCode = "EXIT_WITHOUT_ERROR";
+          } else {
+            gethExitCode = "EXIT_WITH_ERROR_CODE_" + String ( code );
+          }
+        });
+
       });
 
       // Give some time to geth to start.
