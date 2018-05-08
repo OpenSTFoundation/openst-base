@@ -5,7 +5,7 @@ const { spawn }         = require('child_process')
     , path              = require("path")
     , rootPrefix        = "../.."
     , start_time_buffer = 10000
-    , stop_time_buffer  = 3000
+    , stop_time_buffer  = 10000
     , init_time_buffer  = 10000
 ;
 
