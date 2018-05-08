@@ -6,7 +6,7 @@ const { spawn }         = require('child_process')
     , rootPrefix        = "../.."
     , start_time_buffer = 10000
     , stop_time_buffer  = 3000
-    , init_time_buffer  = 20000
+    , init_time_buffer  = 10000
 ;
 
 const gethArgs = {
@@ -272,26 +272,33 @@ GethManager.prototype = {
       ;
 
       let gethProcess = oThis.gethProcess = spawn("rm", gethArgsArray, oThis.gethSpawnOptions );
+      let gethExitCode = "STILL_RUNNING";
       gethProcess.on("exit", function (code, signal) {
         console.log("gethProcess has exitted!  code:", code, "signal", signal, "geth command:\n rm", gethArgsArray.join(" "), "\n");
         oThis.gethProcess = null;
-        oThis.__initPromise = null;
-        setTimeout(function () {
-          if ( !code ) {
-            resolve( true );
-          } else {
-            reject( new Error("geth init exitted with code " + code) );
-          }          
-        }, 500);
+        if ( !code ) {
+          gethExitCode = "EXIT_WITHOUT_ERROR";
+        } else {
+          gethExitCode = "EXIT_WITH_ERROR_CODE_" + String ( code );
+        }
       });
 
       // Give some time to geth to start.
-      setTimeout( function () {
-        if (oThis.__initPromise && oThis.isAlive() ) {
-          reject(new Error("Failed to initialize geth.") );
-        }
+      setTimeout(function () {
         oThis.__initPromise = null;
-      }, init_time_buffer );
+        switch( gethExitCode ) {
+          case "EXIT_WITHOUT_ERROR":
+            resolve( true );
+            break;
+          case "STILL_RUNNING":
+            reject( new Error("Failed to initialize geth. Timeout Error.") );
+            break;
+          default:
+            reject( new Error("Failed to initialize geth. gethExitCode " + gethExitCode) );
+            break;
+        }
+      }, init_time_buffer);
+
     });
     return oThis.__initPromise;
   }
