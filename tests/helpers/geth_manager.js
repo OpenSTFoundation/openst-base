@@ -22,7 +22,7 @@ const gethArgs = {
   
   // MINER OPTIONS
   , mine            : ""
-  , minerthreads    : "1"
+  , minerthreads    : "8"
   , etherbase       : null
   , targetgaslimit  : "100000000"
   , gasprice        : '"1"'
