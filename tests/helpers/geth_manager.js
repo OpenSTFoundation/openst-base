@@ -13,14 +13,20 @@ const gethArgs = {
   networkid         : "20171010"
   , datadir         : path.resolve(__dirname, rootPrefix + "/tests/scripts/st-poa")
   , port            : "30301"
-  , gasprice        : "0"
-  , targetgaslimit  : "100000000"
-  , etherbase       : "0"
+  , maxpeers        : "0"
+  , verbosity       : "3"
+  
+  // ACCOUNT OPTIONS
   , unlock          : "0"
   , password        : path.resolve(__dirname, rootPrefix + "/tests/scripts/pw" )
-  , maxpeers        : "0"
+  
+  // MINER OPTIONS
   , mine            : ""
-  , minerthreads    : "4"
+  , minerthreads    : "1"
+  , etherbase       : "0"
+  , targetgaslimit  : "100000000"
+  , gasprice        : '"1"'
+
 
   //RPC-CONFIG
   , rpc       : ""
@@ -48,7 +54,7 @@ const gethSetupConfig = {
 
 const gethSpawnOptions = {
   shell   : true
-  // , stdio : [ 'ignore', process.stdout, process.stderr ]
+  , stdio : [ 'ignore', process.stdout, process.stderr ]
 };
 
 const GethManager = function () {

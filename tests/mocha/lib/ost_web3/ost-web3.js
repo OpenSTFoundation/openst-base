@@ -151,7 +151,7 @@ const sendTransactionWith = function ( web3 ) {
           outValues.confirmationEvent       = true;
           outValues.confirmationEventNumber = confirmationNumber;
           outValues.confirmationEventHash   = receipt.transactionHash;
-          
+
         })
         .on("error", function ( error ) {
           outValues.errorEvent = true;
@@ -260,31 +260,54 @@ const sendTransactionTestGroup = function () {
   ;
 
   // Initiate Transactions.
-  for( web3Key in web3Instances ) {
-    if ( !web3Instances.hasOwnProperty( web3Key ) ) {
-      continue;
-    }
+  validator = function () {
+    let web3Key;
+    for( web3Key in web3Instances ) {
+      if ( !web3Instances.hasOwnProperty( web3Key ) ) {
+        continue;
+      }
 
-    validator = (function ( web3Key ) {
-      // Create an empty out value hash.
-      web3OutValues[ web3Key ] = {};
-
-      // Create and return Validator.
-      return function () {
-        this.timeout( max_time_per_transaction );
+      // Create a closure for web3Key and call sendTransactionWith.
+      ( function ( web3Key ) {
         let currWeb3 = web3Instances[ web3Key ];
-        return sendTransactionWith( currWeb3 )
+        logger.info("Testing sendTransaction with", web3Key);
+        sendTransactionWith( currWeb3 )
           .then( function ( outValues ) {
             web3OutValues[ web3Key ] = outValues;
           })
         ;
-      };
-    })( web3Key );
-    it("should initiate send transaction flow with " + web3Key, validator);
-  }
+      })( web3Key );
+
+    } // End of for loop.
+    assert.isOk( true );
+  };
+  it("should initiate send transaction flows for all instances of web3.", validator);
+  // Initiate Transactions.
+  // for( web3Key in web3Instances ) {
+  //   if ( !web3Instances.hasOwnProperty( web3Key ) ) {
+  //     continue;
+  //   }
+
+  //   validator = (function ( web3Key ) {
+  //     // Create an empty out value hash.
+  //     web3OutValues[ web3Key ] = {};
+
+  //     // Create and return Validator.
+  //     return function () {
+  //       this.timeout( max_time_per_transaction );
+  //       let currWeb3 = web3Instances[ web3Key ];
+  //       return sendTransactionWith( currWeb3 )
+  //         .then( function ( outValues ) {
+  //           web3OutValues[ web3Key ] = outValues;
+  //         })
+  //       ;
+  //     };
+  //   })( web3Key );
+  //   it("should initiate send transaction flow with " + web3Key, validator);
+  // }
 
   // Verify Transaction results.
-  let validateAfter = max_time_per_transaction;
+  let validateAfter = 2 * max_time_per_transaction;
   for( web3Key in web3Instances ) {
     if ( !web3Instances.hasOwnProperty( web3Key ) ) {
       continue;
