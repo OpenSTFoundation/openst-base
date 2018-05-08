@@ -6,7 +6,7 @@ const { spawn }         = require('child_process')
     , rootPrefix        = "../.."
     , start_time_buffer = 10000
     , stop_time_buffer  = 10000
-    , init_time_buffer  = 10000
+    , init_time_buffer  = 20000
 ;
 
 const gethArgs = {
@@ -25,7 +25,7 @@ const gethArgs = {
   , minerthreads    : "8"
   , etherbase       : null
   , targetgaslimit  : "100000000"
-  , gasprice        : '"1"'
+  , gasprice        : '1'
 
 
   //RPC-CONFIG
@@ -53,8 +53,7 @@ const gethSetupConfig = {
 };
 
 const gethSpawnOptions = {
-  shell   : true
-  , stdio : [ 'ignore', process.stdout, process.stderr ]
+  stdio : [ 'ignore', process.stdout, process.stderr ]
 };
 
 const GethManager = function () {
@@ -73,7 +72,10 @@ GethManager.prototype = {
   , gethProcess: null
   , isAlive: function () {
     const oThis = this;
-    return oThis.gethProcess ? true : false;
+    if ( !oThis.gethProcess ) {
+      return false;
+    }
+    return !oThis.gethProcess.killed;
   }
 
   , _startPromise : null
@@ -82,8 +84,10 @@ GethManager.prototype = {
   , start: function ( argKeysToIgnore ) {
     const oThis = this;
 
+
     oThis._startPromise = oThis._startPromise || new Promise( function ( resolve, reject) {
         if ( oThis.isAlive() ) {
+          console.log("[GETH-START] gethProcess.pid =", oThis.gethProcess.pid, "Resolving the Start Promise");
           resolve( true );
         }
 
@@ -122,33 +126,36 @@ GethManager.prototype = {
           }
         }
 
-        console.log("Starting geth with command :: \ngeth", gethArgsArray.join(" "), "\n");
+        console.log("\t [GETH-START] Starting geth with command :: \ngeth", gethArgsArray.join(" "), "\n");
 
         let gethProcess = oThis.gethProcess = spawn("geth", gethArgsArray, oThis.gethSpawnOptions );
         gethProcess.on("close", function (code, signal) {
-          console.log("[GETH-START] gethProcess has exitted!  code:", code, "signal", signal, "geth command:\n geth", gethArgsArray.join(" "), "\n");
+          console.log("\t [GETH-START] gethProcess has exitted!   code:", code, "signal:", signal, "pid:", gethProcess.pid, "killed:", gethProcess.killed, "geth command:\n geth", gethArgsArray.join(" "), "\n");
+
           oThis.gethProcess = null;
         });
 
+
         // Give some time to geth to start.
         setTimeout( function () {
-          if ( oThis.isAlive() ) {
-          let gethProcessIdArray = [ "aux", "|", "grep", "'geth'", "|", "awk", "'{print $2,$11,$12}'" ];
-          console.log("oThis.gethProcess.pid = ", oThis.gethProcess.pid);
-          let gethProcessIdFinder = spawn("ps", gethProcessIdArray, {shell: true, stdio: [ 'ignore', process.stdout, process.stderr ] });
 
-            console.log("[GETH-START] gethProcess.pid =", gethProcess.pid);
+          if ( oThis.isAlive() ) {
+
+            console.log("[GETH-START] gethProcess.pid =", oThis.gethProcess.pid, "Resolving the Start Promise");
             resolve( true );  
           } else {
             reject(new Error("Failed to start geth.") );
           }
           
+          let gethProcessIdArray = [ "aux", "|", "grep", "'geth'", "|", "awk", "'{print $2,$11,$12}'" ];
+          let gethProcessIdFinder = spawn("ps", gethProcessIdArray, {shell: true, stdio: [ 'ignore', process.stdout, process.stderr ] });
+          
         }, start_time_buffer );
-
+        
       })
       .then( function () {
         // Finally, _startPromise should be set to null.
-        oThis._startPromise = null;   
+        oThis._startPromise = null;
       })
       .catch( function ( reason ) {
         // Ensure gethProcess becomes null.
@@ -171,7 +178,7 @@ GethManager.prototype = {
         }
 
         let gethProcessIdArray = [ "aux", "|", "grep", "'geth'", "|", "awk", "'{print $2,$11,$12}'" ];
-        console.log("oThis.gethProcess.pid = ", oThis.gethProcess.pid);
+        console.log("\t [GETH-STOP] oThis.gethProcess.pid = ", oThis.gethProcess.pid);
         let gethProcessIdFinder = spawn("ps", gethProcessIdArray, {shell: true, stdio: [ 'ignore', process.stdout, process.stderr ] });
 
         oThis.gethProcess.kill("SIGINT");
@@ -180,14 +187,14 @@ GethManager.prototype = {
           oThis.gethProcess.pid
         ];
 
-        let killProcess = spawn("kill", killArgsArray, { shell: true, stdio: [ 'ignore', process.stdout, process.stderr ] } );
-        killProcess.on("close", function (code, signal) {
-          console.log("[GETH-STOP] Geth process should be dead now. command: kill", killArgsArray.join(" "), "kill command exit-code", code );
-          // let psProcess = spawn("ps", ["aux", "|", "grep", "'geth'", "|", "awk", "'{print $2}'"], {
-          //   shell: true
-          //   , stdio: [ 'ignore', process.stdout, process.stderr ]
-          // })
-        })
+        // let killProcess = spawn("kill", killArgsArray, { shell: true, stdio: [ 'ignore', process.stdout, process.stderr ] } );
+        // killProcess.on("close", function (code, signal) {
+        //   console.log("[GETH-STOP] Geth process should be dead now. command: kill", killArgsArray.join(" "), "kill command exit-code", code );
+        //   // let psProcess = spawn("ps", ["aux", "|", "grep", "'geth'", "|", "awk", "'{print $2}'"], {
+        //   //   shell: true
+        //   //   , stdio: [ 'ignore', process.stdout, process.stderr ]
+        //   // })
+        // })
 
         
         // This is dummy code.
@@ -231,7 +238,7 @@ GethManager.prototype = {
     const oThis = this;
 
     const sigHandler = function () {
-      console.log("GethManager :: sigHandler triggered!. Stoping Geth Now.");
+      console.log("\t [GETH-SIGHANDLER] GethManager :: sigHandler triggered!. Stoping Geth Now.");
       oThis.stop();
     };
 
@@ -279,7 +286,7 @@ GethManager.prototype = {
       oThis[ addresses[addrLen] ] = gKey;
     }
 
-    console.log("populateTransactionAddressInfo :: addrLen", addrLen);
+
     addrLen++;
     while( addrLen-- && gKey ) {
       // Assign the last address.
@@ -311,9 +318,9 @@ GethManager.prototype = {
           , gethArgs["datadir"] + "/geth"
         ]
         , gethArgsArray   = [ 
+          "init"
           , "--datadir"
           , gethArgs["datadir"]
-          , "init"
           , gethSetupConfig["poaGenesisAbsolutePath"]
         ]
       ;
@@ -324,38 +331,44 @@ GethManager.prototype = {
 
 
       // Clean up file.
+      console.log("\t [Geth-Init] removing geth folder from datadir.");
       let removeFilesProcess = spawn("rm", rmArgsArray, {shell: true});
       removeFilesProcess.on("close", function (code, signal) {
+        console.log("\t [Geth-Init] removed geth folder from datadir.");
 
         // Now init geth.
         gethProcess = oThis.gethProcess = spawn("geth", gethArgsArray, oThis.gethSpawnOptions );
         gethExitCode = "STILL_RUNNING";
+        
         gethProcess.on("close", function (code, signal) {
-          console.log("gethProcess has exitted!  code:", code, "signal", signal, "geth command:\n geth", gethArgsArray.join(" "), "\n");
+          console.log("\t [Geth-Init] gethProcess has exitted!  code:", code, "signal", signal, "pid", gethProcess.pid, "killed", gethProcess.killed, "geth command:\n geth", gethArgsArray.join(" "), "\n");
           if ( !code ) {
             gethExitCode = "EXIT_WITHOUT_ERROR";
           } else {
             gethExitCode = "EXIT_WITH_ERROR_CODE_" + String ( code );
           }
+          oThis.gethProcess = null;
         });
+
+        // Give some time to geth to start.
+        setTimeout(function () {
+          oThis.__initPromise = null;
+          switch( gethExitCode ) {
+            case "EXIT_WITHOUT_ERROR":
+              resolve( true );
+              break;
+            case "STILL_RUNNING":
+              reject( new Error("Failed to initialize geth. Timeout Error.") );
+              break;
+            default:
+              reject( new Error("Failed to initialize geth. gethExitCode " + gethExitCode) );
+              break;
+          }
+        }, init_time_buffer);
 
       });
 
-      // Give some time to geth to start.
-      setTimeout(function () {
-        oThis.__initPromise = null;
-        switch( gethExitCode ) {
-          case "EXIT_WITHOUT_ERROR":
-            resolve( true );
-            break;
-          case "STILL_RUNNING":
-            reject( new Error("Failed to initialize geth. Timeout Error.") );
-            break;
-          default:
-            reject( new Error("Failed to initialize geth. gethExitCode " + gethExitCode) );
-            break;
-        }
-      }, init_time_buffer);
+
 
     });
     return oThis.__initPromise;
