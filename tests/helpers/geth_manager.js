@@ -167,8 +167,7 @@ GethManager.prototype = {
         oThis.gethProcess.kill("SIGTERM");
 
         let killArgsArray = [
-          "-9"
-          ,oThis.gethProcess.pid
+          oThis.gethProcess.pid
         ];
 
         let killProcess = spawn("kill", killArgsArray, { shell: true} );
