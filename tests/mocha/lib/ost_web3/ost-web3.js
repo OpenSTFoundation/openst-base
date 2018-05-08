@@ -119,6 +119,7 @@ const sendTransactionWith = function ( web3 ) {
         from: sender
         , to: basic_transaction_info.recipient
         , value : web3.utils.toWei( amt_to_transfer_in_eth )
+        , gas: "50000"
     }
   ;
 

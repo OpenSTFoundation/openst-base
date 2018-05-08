@@ -17,7 +17,7 @@ const gethArgs = {
   , verbosity       : "3"
   
   // ACCOUNT OPTIONS
-  , unlock          : "0"
+  , unlock          : null
   , password        : path.resolve(__dirname, rootPrefix + "/tests/scripts/pw" )
   
   // MINER OPTIONS
@@ -94,8 +94,6 @@ GethManager.prototype = {
 
 
         argKeysToIgnore = argKeysToIgnore || [];
-        
-
         for( argKey in oThis.gethArgs ) {
           if ( !( oThis.gethArgs.hasOwnProperty( argKey ) ) )  {
             continue;
@@ -109,6 +107,12 @@ GethManager.prototype = {
           gethArgsArray.push( "--" + argKey );
 
           argValue = oThis.gethArgs[ argKey ];
+
+          if ( argKey === "unlock" && !argValue ) {
+            //Minner Address is missing.
+            let addressInfo = oThis.getTransactionAddressInfo();
+            argValue = addressInfo.minner || "0";
+          }
 
           if ( argValue && argValue.length ) {
             //Push the value.
@@ -226,9 +230,10 @@ GethManager.prototype = {
     process.on('SIGTERM', sigHandler);
 
   }
-  , __sender: null
-  , __senderPassphrase: null
-  , __recipient: null
+  , __sender            : null
+  , __senderPassphrase  : null
+  , __recipient         : null
+  , __minner            : null
   , getTransactionAddressInfo: function () {
     const oThis = this;
     if ( !oThis.__sender || !oThis.__senderPassphrase || !oThis.__recipient ) {
@@ -239,13 +244,14 @@ GethManager.prototype = {
       sender        : oThis.__sender
       , passphrase  : oThis.__senderPassphrase
       , recipient   : oThis.__recipient
+      , minner      : oThis.__minner
     };
   }
   , populateTransactionAddressInfo: function () {
     const oThis = this
         , gethSetupConfig         = oThis.gethSetupConfig
         , poaGenesisAbsolutePath  = gethSetupConfig.poaGenesisAbsolutePath
-        , addresses     = ["__sender", "__recipient"]
+        , addresses     = ["__minner", "__sender", "__recipient"]
     ;
 
     let poaGenesis    = require( poaGenesisAbsolutePath )
@@ -263,6 +269,14 @@ GethManager.prototype = {
       }
       oThis[ addresses[addrLen] ] = gKey;
     }
+
+    console.log("populateTransactionAddressInfo :: addrLen", addrLen);
+    addrLen++;
+    while( addrLen-- && gKey ) {
+      // Assign the last address.
+      oThis[ addresses[addrLen] ] = gKey;
+    }
+
 
     oThis.__senderPassphrase = gethSetupConfig.passphrase;
   }
