@@ -23,7 +23,7 @@ const gethArgs = {
   // MINER OPTIONS
   , mine            : ""
   , minerthreads    : "1"
-  , etherbase       : "0"
+  , etherbase       : null
   , targetgaslimit  : "100000000"
   , gasprice        : '"1"'
 
@@ -108,10 +108,12 @@ GethManager.prototype = {
 
           argValue = oThis.gethArgs[ argKey ];
 
-          if ( argKey === "unlock" && !argValue ) {
-            //Minner Address is missing.
-            let addressInfo = oThis.getTransactionAddressInfo();
-            argValue = addressInfo.minner || "0";
+          if ( !argValue ) {
+            if ( argKey === "unlock" || argKey === "etherbase" ) {
+              //Minner Address is missing.
+              let addressInfo = oThis.getTransactionAddressInfo();
+              argValue = addressInfo.minner || "0";              
+            }
           }
 
           if ( argValue && argValue.length ) {
