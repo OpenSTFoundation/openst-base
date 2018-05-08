@@ -322,7 +322,7 @@ GethManager.prototype = {
         gethProcess = oThis.gethProcess = spawn("geth", gethArgsArray, oThis.gethSpawnOptions );
         gethExitCode = "STILL_RUNNING";
         gethProcess.on("exit", function (code, signal) {
-          console.log("gethProcess has exitted!  code:", code, "signal", signal, "geth command:\n rm", gethArgsArray.join(" "), "\n");
+          console.log("gethProcess has exitted!  code:", code, "signal", signal, "geth command:\n geth", gethArgsArray.join(" "), "\n");
           if ( !code ) {
             gethExitCode = "EXIT_WITHOUT_ERROR";
           } else {

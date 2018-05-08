@@ -3,6 +3,7 @@
 const Web3            = require("web3")
     , path            = require("path")
     , fs              = require("fs")
+    , { spawn }       = require('child_process')
     , rootPrefix      = "../.."
     , gethManager     = require( rootPrefix + "/tests/helpers/geth_manager")
     
@@ -46,9 +47,21 @@ let hasErrors = false;
         }
       });
     } else {
-      setTimeout(function () {
-        resolve( datadir );
-      }, 0);      
+      // Make sure to clean the directory.
+      let rmArgs = ["-rf", datadir];
+      let rmProcess = spawn("rm", rmArgs, {shell: true});
+      rmProcess.on("exit", function (code, signal) {
+        if ( !code ) {
+          setTimeout(function () {
+            resolve( datadir );
+          }, 0);
+        } else {
+          let err = new Error("Could not clean datadir directory. rm exit code: " + code + ". command: rm " + rmArgs.join(" ") );
+          setTimeout(function () {
+            reject( err )
+          }, 0);
+        }
+      });
     }
   })
   .then( function ( datadir ) { 
