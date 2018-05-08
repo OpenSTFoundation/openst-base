@@ -113,13 +113,14 @@ GethManager.prototype = {
 
         let gethProcess = oThis.gethProcess = spawn("geth", gethArgsArray, oThis.gethSpawnOptions );
         gethProcess.on("exit", function (code, signal) {
-          console.log("gethProcess has exitted!  code:", code, "signal", signal, "geth command:\n geth", gethArgsArray.join(" "), "\n");
+          console.log("[GETH-START] gethProcess has exitted!  code:", code, "signal", signal, "geth command:\n geth", gethArgsArray.join(" "), "\n");
           oThis.gethProcess = null;
         });
 
         // Give some time to geth to start.
         setTimeout( function () {
           if ( oThis.isAlive() ) {
+            console.log("[GETH-START] gethProcess.pid =", gethProcess.pid);
             resolve( true );  
           } else {
             reject(new Error("Failed to start geth.") );
@@ -152,7 +153,20 @@ GethManager.prototype = {
           resolve( true );
         }
 
-        oThis.gethProcess.kill();
+        let killArgsArray = [
+          oThis.gethProcess.pid
+        ];
+
+        let killProcess = spawn("kill", killArgsArray, { shell: true} );
+        killProcess.on("exit", function (code, signal) {
+          console.log("[GETH-STOP] Geth process should be dead now. command: kill", killArgsArray.join(" ") );
+          // let psProcess = spawn("ps", ["aux", "|", "grep", "'geth'", "|", "awk", "'{print $2}'"], {
+          //   shell: true
+          //   , stdio: [ 'ignore', process.stdout, process.stderr ]
+          // })
+        })
+
+        // oThis.gethProcess.kill();
         // This is dummy code.
         setTimeout( function () {
           if ( !oThis.isAlive() ) {
@@ -279,7 +293,7 @@ GethManager.prototype = {
       // Clean up file.
       let removeFilesProcess = spawn("rm", rmArgsArray, {shell: true});
       removeFilesProcess.on("exit", function (code, signal) {
-        
+
         // Now init geth.
         gethProcess = oThis.gethProcess = spawn("geth", gethArgsArray, oThis.gethSpawnOptions );
         gethExitCode = "STILL_RUNNING";
