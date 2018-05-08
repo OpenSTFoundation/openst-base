@@ -36,6 +36,42 @@ const avg_block_time              = 3000    /* Avg time required to mine a block
     , max_time_for_geth_stop      = 20000 /* Time Required for geth to stop  */
 ; 
 
+// This is the main function. Let it execute once all methods are defined.
+let testGroups = [];
+const mainFn = function () { 
+  // add all test cases.
+  testGroups.push( startGethTestGroup );
+  testGroups.push( createAndValidateWeb3Instances );
+  testGroups.push( sendTransactionTestGroup );
+  testGroups.push( stopGethTestGroup );
+  testGroups.push( startGethTestGroup );
+  // testGroups.push( sendTransactionTestGroup );
+  testGroups.push( stopGethTestGroup );
+  // testGroups.push( function () {
+  //   setTimeout( function () {
+  //     process.exit(0);
+  //   }, 2000);
+  // });
+  describe(describePrefix, function () {
+    let testCases
+      , len       
+      , cnt
+      , testCase
+    ;
+
+    while( testGroups.length ) {
+      testCases = testGroups.shift()();
+      // console.log("testCases", testCases);
+      // len = testCases.length;
+
+      // for( cnt=0; cnt< len; cnt++ ) {
+      //   testCase = testCases[ cnt ];
+      //   it( testCase.text, testCase.validator );
+      // }
+    }
+  });
+};
+
 const amt_to_transfer_in_eth = "0.01";
 let basic_transaction_info = null;
 
@@ -106,6 +142,7 @@ const sendTransactionWith = function ( web3 ) {
           logger.info("receipt", receipt);
         })
         .on("confirmation", function (confirmationNumber, receipt) {
+
           if ( confirmationNumber != expectedOutValues.confirmationEventNumber ) {
             // Ignore this event.
             return;
@@ -114,6 +151,7 @@ const sendTransactionWith = function ( web3 ) {
           outValues.confirmationEvent       = true;
           outValues.confirmationEventNumber = confirmationNumber;
           outValues.confirmationEventHash   = receipt.transactionHash;
+          
         })
         .on("error", function ( error ) {
           outValues.errorEvent = true;
@@ -139,6 +177,7 @@ const sendTransactionWith = function ( web3 ) {
 };
 
 const verifyResult = function ( result ) {
+  result = result || {};
   let eKey;
   for( eKey in expectedOutValues ) {
     if ( !expectedOutValues.hasOwnProperty( eKey ) ) {
@@ -146,7 +185,7 @@ const verifyResult = function ( result ) {
     }
 
     assert.isTrue( result.hasOwnProperty( eKey ), "result is missing " + eKey + " property" );
-    assert.equal( result[eKey], expectedOutValues[ eKey ], "result does not match expected output. Property :", eKey);
+    assert.equal( result[eKey], expectedOutValues[ eKey ], "result does not match expected output. Property : " + eKey);
   }
 
   assert.isOk( result.callbackHash, "callbackHash is not ok.");
@@ -158,151 +197,141 @@ const verifyResult = function ( result ) {
   return true;
 };
 
-// Web3 Instances
-let testGroups = []
-    , web3Instances = {}
-    , ostWeb3WithHttp
-    , ostWeb3WithWS
-    , web3WithHttp
-    , web3WithWS
-
-;
-
 const startGethTestGroup = function () {
-  describe(describePrefix + " :: Start Geth", function () {
-    it("should start geth.", async function () { 
-      this.timeout( max_time_for_geth_start );
-      await gethManager
-        .start()
-        .then( function () {
-          assert.isOk(true);
-          executeNextTestGroup();
-        })
-        .catch( function () {
-          assert.isOk(false, "Failed to start geth.");
-        })
-      ;
-    });
-  });
+  let validator = function () { 
+    return gethManager
+      .start()
+      .then( function () {
+        logger.info("Geth started successfully.");
+        assert.isOk(true);
+      })
+      .catch( function ( reason ) {
+        logger.error("Failed to start geth. reason", reason);
+        assert.isOk(false, "Failed to start geth.");
+      })
+    ;
+  };
+
+  it("should start geth.", validator);
 };
 
+// Web3 Instances. Make sure to define keys before hand in web3Instances.
+let web3Instances = {
+    web3WithHttp      : null
+    , ostWeb3WithHttp : null
+    , web3WithWS      : null
+    , ostWeb3WithWS   : null
+  }
+  , ostWeb3WithHttp
+  , ostWeb3WithWS
+  , web3WithHttp
+  , web3WithWS
+;
+
 const createAndValidateWeb3Instances = function () {
-  describe(describePrefix + " :: create and validate web3 Instances.", function () {
+  
+  it("should create new web3 instances.", function () {
     web3Instances.web3WithHttp    = web3WithHttp    = new Web3( httpEndPoint );
     web3Instances.ostWeb3WithHttp = ostWeb3WithHttp = new OstWeb3( httpEndPoint );
     web3Instances.web3WithWS      = web3WithWS      = new Web3( wsEndPoint );
     web3Instances.ostWeb3WithWS   = ostWeb3WithWS   = new OstWeb3( wsEndPoint );
-
-    it("web3WithHttp.currentProvider should be an instance of HttpProvider", function () {
-      assert.instanceOf( web3WithHttp.currentProvider, HttpProvider, "web3WithHttp has incorrect provider set");    
-    });
-    it("ostWeb3WithHttp.currentProvider should be an instance of HttpProvider", function () {
-      assert.instanceOf( ostWeb3WithHttp.currentProvider, HttpProvider, "ostWeb3WithHttp has incorrect provider set");    
-    });
-    it("web3WithWS.currentProvider should be an instance of WebsocketProvider", function () {
-      assert.instanceOf( web3WithWS.currentProvider, WebsocketProvider, "web3WithWS has incorrect provider set");  
-    });
-    it("ostWeb3WithWS.currentProvider should be an instance of OstWSProvider", function () {
-      assert.instanceOf( ostWeb3WithWS.currentProvider, OstWSProvider, "ostWeb3WithWS has incorrect provider set");    
-    });
+    assert.isOk(true);
   });
-  setTimeout( executeNextTestGroup, 10);
+
+  it("web3WithHttp.currentProvider should be an instance of HttpProvider", function () {
+    assert.instanceOf( web3WithHttp.currentProvider, HttpProvider, "web3WithHttp has incorrect provider set");    
+  });
+  it("ostWeb3WithHttp.currentProvider should be an instance of HttpProvider", function () {
+    assert.instanceOf( ostWeb3WithHttp.currentProvider, HttpProvider, "ostWeb3WithHttp has incorrect provider set");    
+  });
+  it("web3WithWS.currentProvider should be an instance of WebsocketProvider", function () {
+    assert.instanceOf( web3WithWS.currentProvider, WebsocketProvider, "web3WithWS has incorrect provider set");  
+  });
+  it("ostWeb3WithWS.currentProvider should be an instance of OstWSProvider", function () {
+    assert.instanceOf( ostWeb3WithWS.currentProvider, OstWSProvider, "ostWeb3WithWS has incorrect provider set");    
+  });
 };
 
 const sendTransactionTestGroup = function () { 
-  describe(describePrefix + " :: perform sendTransaction using all web3 instances.", function () {
-    let web3OutValues = {}
-      , web3Key
-      , currWeb3
-    ;
+  
+  let web3OutValues = {}
+    , web3Key
+    , validator
+  ;
 
-    // Initiate Transactions.
-    for( web3Key in web3Instances ) {
-      if ( !web3Instances.hasOwnProperty( web3Key ) ) {
-        continue;
-      }
+  // Initiate Transactions.
+  for( web3Key in web3Instances ) {
+    if ( !web3Instances.hasOwnProperty( web3Key ) ) {
+      continue;
+    }
 
-      (function ( web3Key ) {
-        currWeb3 = web3Instances[ web3Key ];
-        sendTransactionWith( currWeb3 )
+    validator = (function ( web3Key ) {
+      // Create an empty out value hash.
+      web3OutValues[ web3Key ] = {};
+
+      // Create and return Validator.
+      return function () {
+        this.timeout( max_time_per_transaction );
+        let currWeb3 = web3Instances[ web3Key ];
+        return sendTransactionWith( currWeb3 )
           .then( function ( outValues ) {
             web3OutValues[ web3Key ] = outValues;
           })
-      })( web3Key );
+        ;
+      };
+    })( web3Key );
+    it("should initiate send transaction flow with " + web3Key, validator);
+  }
+
+  // Verify Transaction results.
+  let validateAfter = max_time_per_transaction;
+  for( web3Key in web3Instances ) {
+    if ( !web3Instances.hasOwnProperty( web3Key ) ) {
+      continue;
     }
 
-    let validateAfter = max_time_per_transaction
-      , Validator
-      , callNextTestGroup = true
-    ;
-    for( web3Key in web3Instances ) { 
+    validator = (function ( web3Key, validateAfter ) { 
 
-      currWeb3 = web3Instances[ web3Key ];
-      Validator = ( function ( web3Key, validateAfter ) {
-        
-        return function ( done ) {
-          this.timeout( validateAfter + 1000 );
+      return function () {
+        this.timeout( validateAfter + 1000 );
+        return new Promise( function ( resolve, reject ) {
           setTimeout( function () {
-            verifyResult( web3OutValues[ web3Key ], web3Key );
-            if ( callNextTestGroup ) {
-              executeNextTestGroup();
-              callNextTestGroup = false;
-            }
-            done();
+            resolve( web3OutValues[ web3Key ] )
           }, validateAfter);
-        };
+        })
+        .then( function ( outValues ) {
+          verifyResult( outValues, web3Key );
+        })        
+      };
 
-      })( web3Key, validateAfter );
-
-      it("should complete send transaction flow with " + web3Key + ". validateAfter = " + validateAfter, Validator);
-      validateAfter = 0;
-    }
-  });
+    })( web3Key, validateAfter );
+    it("should validate send transaction outputs with " + web3Key + ". timeout for this test case set to " + validateAfter, validator);
+    validateAfter = 0;
+  }
 };
 
 
 const stopGethTestGroup = function () {
-  describe(describePrefix + " :: Stop Geth", function () {
-    it("should stop geth.", async function () { 
-      this.timeout( max_time_for_geth_stop );
-      await gethManager
-        .stop()
-        .then( function () {
-          assert.isOk(true);
+  let validator = function () { 
+    return gethManager
+      .stop()
+      .then( function () {
+        assert.isOk(true);
+        if ( web3Instances.web3WithWS ) {
           logger.info("Removing web3WithWS from web3Instances as it will not re-connect.");
-          delete web3Instances.web3WithWS;
-          executeNextTestGroup();
-        })
-        .catch( function () {
-          assert.isOk(false, "Failed to stop geth.");
-        })
-      ;
-    });
-  });
+          delete web3Instances.web3WithWS;            
+        }
+      })
+      .catch( function () {
+        assert.isOk(false, "Failed to stop geth.");
+      })
+    ;
+  };
+
+  it("should stop geth.", validator);
 };
 
 
+mainFn();
 
-// Chain the testGroups.
 
-testGroups.push( startGethTestGroup );
-testGroups.push( createAndValidateWeb3Instances );
-testGroups.push( sendTransactionTestGroup );
-testGroups.push( stopGethTestGroup );
-testGroups.push( startGethTestGroup );
-testGroups.push( sendTransactionTestGroup );
-testGroups.push( stopGethTestGroup );
-testGroups.push( function () {
-  setTimeout( function () {
-    process.exit(0);  
-  }, 2000);
-});
-
-const executeNextTestGroup = function () {
-  if ( testGroups.length ) {
-    let testGroup = testGroups.shift();
-    testGroup();
-  }
-};
-
-executeNextTestGroup();

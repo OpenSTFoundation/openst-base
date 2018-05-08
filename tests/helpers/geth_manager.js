@@ -47,7 +47,8 @@ const gethSetupConfig = {
 };
 
 const gethSpawnOptions = {
-  shell: true
+  shell   : true
+  // , stdio : [ 'ignore', process.stdout, process.stderr ]
 };
 
 const GethManager = function () {
