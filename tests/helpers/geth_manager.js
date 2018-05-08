@@ -46,11 +46,16 @@ const gethSetupConfig = {
   , passphraseFilePath    : gethArgs.password
 };
 
+const gethSpawnOptions = {
+  shell: true
+};
+
 const GethManager = function () {
   const oThis = this;
 
-  oThis.gethArgs        = Object.assign( {}, gethArgs );
-  oThis.gethSetupConfig = Object.assign( {}, gethSetupConfig );
+  oThis.gethArgs          = Object.assign( {}, gethArgs );
+  oThis.gethSetupConfig   = Object.assign( {}, gethSetupConfig );
+  oThis.gethSpawnOptions  = Object.assign( {}, gethSpawnOptions );
   oThis.bindSignalHandlers();
 
 };
@@ -66,6 +71,7 @@ GethManager.prototype = {
 
   , _startPromise : null
   , startWaitTime : 5000
+  , gethSpawnOptions: null
   , start: function ( argKeysToIgnore ) {
     const oThis = this;
 
@@ -105,7 +111,7 @@ GethManager.prototype = {
 
         console.log("Starting geth with command :: \ngeth", gethArgsArray.join(" "), "\n");
 
-        let gethProcess = oThis.gethProcess = spawn("geth", gethArgsArray, {shell: true, detached: true, stdio: [ 'ignore', process.stdout, process.stderr ]});
+        let gethProcess = oThis.gethProcess = spawn("geth", gethArgsArray, oThis.gethSpawnOptions );
         gethProcess.on("exit", function (code, signal) {
           console.log("gethProcess has exitted!  code:", code, "signal", signal, "geth command:\n geth", gethArgsArray.join(" "), "\n");
           oThis.gethProcess = null;
@@ -265,21 +271,23 @@ GethManager.prototype = {
         ]
       ;
 
-      let gethProcess = oThis.gethProcess = spawn("rm", gethArgsArray, {shell: true, detached: true, stdio: [ 'ignore', process.stdout, process.stderr ]});
+      let gethProcess = oThis.gethProcess = spawn("rm", gethArgsArray, oThis.gethSpawnOptions );
       gethProcess.on("exit", function (code, signal) {
         console.log("gethProcess has exitted!  code:", code, "signal", signal, "geth command:\n rm", gethArgsArray.join(" "), "\n");
         oThis.gethProcess = null;
-
-        if ( !code ) {
-          resolve( true );
-        } else {
-          reject( new Error("geth init exitted with code " + code) );
-        }
+        oThis.__initPromise = null;
+        setTimeout(function () {
+          if ( !code ) {
+            resolve( true );
+          } else {
+            reject( new Error("geth init exitted with code " + code) );
+          }          
+        }, 500);
       });
 
       // Give some time to geth to start.
       setTimeout( function () {
-        if ( oThis.isAlive() ) {
+        if (oThis.__initPromise && oThis.isAlive() ) {
           reject(new Error("Failed to initialize geth.") );
         }
         oThis.__initPromise = null;
