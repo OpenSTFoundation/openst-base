@@ -125,7 +125,7 @@ GethManager.prototype = {
         console.log("Starting geth with command :: \ngeth", gethArgsArray.join(" "), "\n");
 
         let gethProcess = oThis.gethProcess = spawn("geth", gethArgsArray, oThis.gethSpawnOptions );
-        gethProcess.on("exit", function (code, signal) {
+        gethProcess.on("close", function (code, signal) {
           console.log("[GETH-START] gethProcess has exitted!  code:", code, "signal", signal, "geth command:\n geth", gethArgsArray.join(" "), "\n");
           oThis.gethProcess = null;
         });
@@ -133,6 +133,10 @@ GethManager.prototype = {
         // Give some time to geth to start.
         setTimeout( function () {
           if ( oThis.isAlive() ) {
+          let gethProcessIdArray = [ "aux", "|", "grep", "'geth'", "|", "awk", "'{print $2,$11,$12}'" ];
+          console.log("oThis.gethProcess.pid = ", oThis.gethProcess.pid);
+          let gethProcessIdFinder = spawn("ps", gethProcessIdArray, {shell: true, stdio: [ 'ignore', process.stdout, process.stderr ] });
+
             console.log("[GETH-START] gethProcess.pid =", gethProcess.pid);
             resolve( true );  
           } else {
@@ -166,14 +170,18 @@ GethManager.prototype = {
           resolve( true );
         }
 
-        oThis.gethProcess.kill("SIGTERM");
+        let gethProcessIdArray = [ "aux", "|", "grep", "'geth'", "|", "awk", "'{print $2,$11,$12}'" ];
+        console.log("oThis.gethProcess.pid = ", oThis.gethProcess.pid);
+        let gethProcessIdFinder = spawn("ps", gethProcessIdArray, {shell: true, stdio: [ 'ignore', process.stdout, process.stderr ] });
+
+        oThis.gethProcess.kill("SIGINT");
 
         let killArgsArray = [
           oThis.gethProcess.pid
         ];
 
-        let killProcess = spawn("kill", killArgsArray, { shell: true} );
-        killProcess.on("exit", function (code, signal) {
+        let killProcess = spawn("kill", killArgsArray, { shell: true, stdio: [ 'ignore', process.stdout, process.stderr ] } );
+        killProcess.on("close", function (code, signal) {
           console.log("[GETH-STOP] Geth process should be dead now. command: kill", killArgsArray.join(" "), "kill command exit-code", code );
           // let psProcess = spawn("ps", ["aux", "|", "grep", "'geth'", "|", "awk", "'{print $2}'"], {
           //   shell: true
@@ -317,12 +325,12 @@ GethManager.prototype = {
 
       // Clean up file.
       let removeFilesProcess = spawn("rm", rmArgsArray, {shell: true});
-      removeFilesProcess.on("exit", function (code, signal) {
+      removeFilesProcess.on("close", function (code, signal) {
 
         // Now init geth.
         gethProcess = oThis.gethProcess = spawn("geth", gethArgsArray, oThis.gethSpawnOptions );
         gethExitCode = "STILL_RUNNING";
-        gethProcess.on("exit", function (code, signal) {
+        gethProcess.on("close", function (code, signal) {
           console.log("gethProcess has exitted!  code:", code, "signal", signal, "geth command:\n geth", gethArgsArray.join(" "), "\n");
           if ( !code ) {
             gethExitCode = "EXIT_WITHOUT_ERROR";
