@@ -38,7 +38,7 @@ const gethArgs = {
   //WS-CONFIG
   , ws        : ""
   , wsport    : "13546"
-  , wsorigins : "'*'"
+  , wsorigins : "*"
   , wsaddr    : "127.0.0.1"
   , wsapi     : "eth,net,web3,personal,txpool"
 };
