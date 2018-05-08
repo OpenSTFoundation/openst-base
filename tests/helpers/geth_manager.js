@@ -4,9 +4,9 @@
 const { spawn }         = require('child_process')
     , path              = require("path")
     , rootPrefix        = "../.."
-    , start_time_buffer = 10000
-    , stop_time_buffer  = 10000
-    , init_time_buffer  = 20000
+    , start_time_buffer = 20000
+    , stop_time_buffer  = 20000
+    , init_time_buffer  = 25000
 ;
 
 const gethArgs = {
@@ -339,7 +339,7 @@ GethManager.prototype = {
         // Now init geth.
         gethProcess = oThis.gethProcess = spawn("geth", gethArgsArray, oThis.gethSpawnOptions );
         gethExitCode = "STILL_RUNNING";
-        
+
         gethProcess.on("close", function (code, signal) {
           console.log("\t [Geth-Init] gethProcess has exitted!  code:", code, "signal", signal, "pid", gethProcess.pid, "killed", gethProcess.killed, "geth command:\n geth", gethArgsArray.join(" "), "\n");
           if ( !code ) {

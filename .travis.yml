@@ -26,7 +26,6 @@ install:
   - npm install 
 before_script:  
   - node tests/scripts/setup_geth.js
-  - kill $(ps aux | grep 'geth' | awk '{print $2}')
 script:  
   - node_modules/mocha/bin/mocha tests/mocha/lib/ost_web3/ost-web3.js --timeout 50000 --exit
 after_script:
