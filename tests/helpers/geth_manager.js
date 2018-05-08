@@ -105,7 +105,7 @@ GethManager.prototype = {
 
         console.log("Starting geth with command :: \ngeth", gethArgsArray.join(" "), "\n");
 
-        let gethProcess = oThis.gethProcess = spawn("geth", gethArgsArray, { shell: true });
+        let gethProcess = oThis.gethProcess = spawn("geth", gethArgsArray, {shell: true, detached: true, stdio: [ 'ignore', process.stdout, process.stderr ]});
         gethProcess.on("exit", function (code, signal) {
           console.log("gethProcess has exitted!  code:", code, "signal", signal, "geth command:\n geth", gethArgsArray.join(" "), "\n");
           oThis.gethProcess = null;
@@ -265,7 +265,7 @@ GethManager.prototype = {
         ]
       ;
 
-      let gethProcess = oThis.gethProcess = spawn("rm", gethArgsArray, { shell: true });
+      let gethProcess = oThis.gethProcess = spawn("rm", gethArgsArray, {shell: true, detached: true, stdio: [ 'ignore', process.stdout, process.stderr ]});
       gethProcess.on("exit", function (code, signal) {
         console.log("gethProcess has exitted!  code:", code, "signal", signal, "geth command:\n rm", gethArgsArray.join(" "), "\n");
         oThis.gethProcess = null;
