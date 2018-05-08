@@ -31,6 +31,9 @@ let hasErrors = false;
 ( function ( noOfAddresses ) {
   
 
+  // Make Sure we get geth logs.
+  gethManager.gethSpawnOptions.stdio = [ 'ignore', process.stdout, process.stderr ];
+
   const flowPromise = new Promise( function ( resolve, reject ) {
     console.log("[GETH-SETUP] 0. Creating datadir if needed. datadir:", datadir);
     // Create datadir.
@@ -165,11 +168,11 @@ const createAddresses = function ( noOfAddresses ) {
   while( len-- ) {
     promiseChain = promiseChain
       .then( function () {
-        console.log("\t\t a. Generating new Address.");
+        console.log("\t Generating new Address.");
         return web3.eth.personal.newAccount( newKeyPassphrase )
       })
       .then( function ( newAddress ) {
-        console.log("\t\t b. New Address", newAddress, "generated. Updating poa-genesis alloc block.");
+        console.log("\t -- New Address", newAddress, "generated. Updating poa-genesis alloc block.");
         let genesisAlloc = poaGenesis.alloc = poaGenesis.alloc || {};
         genesisAlloc[ newAddress ] = {
           "balance": web3.utils.toHex( web3.utils.toWei( "99999" ) )
