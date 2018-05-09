@@ -11,7 +11,7 @@ const Chai            = require('chai')
     , PoolFactory     = OstWeb3Pool.Factory
     
     , gethManager     = require( rootPrefix + "/tests/helpers/geth_manager")
-    , logger          = new Logger( "OstWeb3TestCases", Logger.LOG_LEVELS.INFO )
+    , logger          = new Logger( "Web3PoolTestCases", Logger.LOG_LEVELS.INFO )
 
     // Provider classes.
     , OstWSProvider     = OSTBase.OstWeb3.OstWSProvider
