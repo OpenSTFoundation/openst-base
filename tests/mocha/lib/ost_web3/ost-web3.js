@@ -44,9 +44,9 @@ const mainFn = function () {
   testGroups.push( createAndValidateWeb3Instances );
   testGroups.push( sendTransactionTestGroup );
   testGroups.push( stopGethTestGroup );
-  testGroups.push( startGethTestGroup );
+  // testGroups.push( startGethTestGroup );
   // testGroups.push( sendTransactionTestGroup );
-  testGroups.push( stopGethTestGroup );
+  // testGroups.push( stopGethTestGroup );
   // testGroups.push( function () {
   //   setTimeout( function () {
   //     process.exit(0);

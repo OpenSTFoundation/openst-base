@@ -315,7 +315,7 @@ GethManager.prototype = {
       let gethArgs        = oThis.gethArgs
         , gethSetupConfig = oThis.gethSetupConfig
         , rmArgsArray     = [ "-rf"
-          , gethArgs["datadir"] + "/geth"
+          , gethArgs["datadir"] + "/geth/*"
         ]
         , gethArgsArray   = [ 
           "init"
@@ -332,9 +332,9 @@ GethManager.prototype = {
 
       // Clean up file.
       console.log("\t [Geth-Init] removing geth folder from datadir.");
-      let removeFilesProcess = spawn("rm", rmArgsArray, {shell: true});
+      let removeFilesProcess = spawn("rm", rmArgsArray, {shell: true, stdio: [ 'ignore', process.stdout, process.stderr ] });
       removeFilesProcess.on("close", function (code, signal) {
-        console.log("\t [Geth-Init] removed geth folder from datadir.");
+        console.log("\t [Geth-Init] removed geth folder from datadir. code:", code, "signal:", signal);
 
         // Now init geth.
         gethProcess = oThis.gethProcess = spawn("geth", gethArgsArray, oThis.gethSpawnOptions );
