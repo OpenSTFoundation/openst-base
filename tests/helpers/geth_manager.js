@@ -22,10 +22,10 @@ const gethArgs = {
   
   // MINER OPTIONS
   , mine            : ""
-  , minerthreads    : "8"
+  , minerthreads    : "4"
   , etherbase       : null
   , targetgaslimit  : "100000000"
-  , gasprice        : '1'
+  , gasprice        : "1"
 
 
   //RPC-CONFIG
@@ -53,7 +53,7 @@ const gethSetupConfig = {
 };
 
 const gethSpawnOptions = {
-  stdio : [ 'ignore', process.stdout, process.stderr ]
+  // stdio : [ 'ignore', process.stdout, process.stderr ]
 };
 
 const GethManager = function () {
@@ -73,8 +73,10 @@ GethManager.prototype = {
   , isAlive: function () {
     const oThis = this;
     if ( !oThis.gethProcess ) {
+      console.log("[GETH-isAlive] oThis.gethProcess is null");
       return false;
     }
+    console.log("[GETH-isAlive] oThis.gethProcess.killed", oThis.gethProcess.killed);
     return !oThis.gethProcess.killed;
   }
 
@@ -182,19 +184,6 @@ GethManager.prototype = {
         let gethProcessIdFinder = spawn("ps", gethProcessIdArray, {shell: true, stdio: [ 'ignore', process.stdout, process.stderr ] });
 
         oThis.gethProcess.kill("SIGINT");
-
-        let killArgsArray = [
-          oThis.gethProcess.pid
-        ];
-
-        // let killProcess = spawn("kill", killArgsArray, { shell: true, stdio: [ 'ignore', process.stdout, process.stderr ] } );
-        // killProcess.on("close", function (code, signal) {
-        //   console.log("[GETH-STOP] Geth process should be dead now. command: kill", killArgsArray.join(" "), "kill command exit-code", code );
-        //   // let psProcess = spawn("ps", ["aux", "|", "grep", "'geth'", "|", "awk", "'{print $2}'"], {
-        //   //   shell: true
-        //   //   , stdio: [ 'ignore', process.stdout, process.stderr ]
-        //   // })
-        // })
 
         
         // This is dummy code.

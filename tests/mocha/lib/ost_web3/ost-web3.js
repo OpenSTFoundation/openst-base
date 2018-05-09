@@ -33,7 +33,7 @@ const avg_block_time              = 3000    /* Avg time required to mine a block
     , buffer_time_per_describe    = 5000
     , max_time_per_transaction    = (avg_block_time * no_of_conformation_blocks) + buffer_time_per_describe
     , max_time_for_geth_start     = 20000 /* Time Required for geth to start */
-    , max_time_for_geth_stop      = 20000 /* Time Required for geth to stop  */
+    , max_time_for_geth_stop      = 10000 /* Time Required for geth to stop  */
 ; 
 
 // This is the main function. Let it execute once all methods are defined.
@@ -47,11 +47,6 @@ const mainFn = function () {
   testGroups.push( startGethTestGroup );
   testGroups.push( sendTransactionTestGroup );
   testGroups.push( stopGethTestGroup );
-  testGroups.push( function () {
-    setTimeout( function () {
-      process.exit(0);
-    }, 2000);
-  });
   describe(describePrefix, function () {
     let testCases
       , len       
@@ -62,7 +57,17 @@ const mainFn = function () {
     while( testGroups.length ) {
       testCases = testGroups.shift()();
     }
+
+    // Finally - Have a nice day.
+    it("will say have a nice day", function () {
+      logger.win("Have a nice day! The process will exit in 1 second.");
+      assert.isOk( true );
+      setTimeout( function () {
+        process.exit(0);
+      }, 1000);
+    })
   });
+
 };
 
 const amt_to_transfer_in_eth = "0.01";
@@ -193,6 +198,8 @@ const verifyResult = function ( result ) {
 
 const startGethTestGroup = function () {
   let validator = function () { 
+    this.timeout( max_time_for_geth_start );
+    logger.step("Start Geth TestGroup");
     return gethManager
       .start()
       .then( function () {
@@ -259,6 +266,7 @@ const sendTransactionTestGroup = function () {
 
   // Initiate Transactions.
   validator = function () {
+    this.timeout( max_time_per_transaction );
     let web3Key;
     for( web3Key in web3Instances ) {
       if ( !web3Instances.hasOwnProperty( web3Key ) ) {
@@ -280,32 +288,9 @@ const sendTransactionTestGroup = function () {
     assert.isOk( true );
   };
   it("should initiate send transaction flows for all instances of web3.", validator);
-  // Initiate Transactions.
-  // for( web3Key in web3Instances ) {
-  //   if ( !web3Instances.hasOwnProperty( web3Key ) ) {
-  //     continue;
-  //   }
-
-  //   validator = (function ( web3Key ) {
-  //     // Create an empty out value hash.
-  //     web3OutValues[ web3Key ] = {};
-
-  //     // Create and return Validator.
-  //     return function () {
-  //       this.timeout( max_time_per_transaction );
-  //       let currWeb3 = web3Instances[ web3Key ];
-  //       return sendTransactionWith( currWeb3 )
-  //         .then( function ( outValues ) {
-  //           web3OutValues[ web3Key ] = outValues;
-  //         })
-  //       ;
-  //     };
-  //   })( web3Key );
-  //   it("should initiate send transaction flow with " + web3Key, validator);
-  // }
-
+  
   // Verify Transaction results.
-  let validateAfter = 2 * max_time_per_transaction;
+  let validateAfter = max_time_per_transaction + 2000;
   for( web3Key in web3Instances ) {
     if ( !web3Instances.hasOwnProperty( web3Key ) ) {
       continue;
@@ -315,6 +300,13 @@ const sendTransactionTestGroup = function () {
 
       return function () {
         this.timeout( validateAfter + 1000 );
+
+        if ( !web3Instances[ web3Key ] ) {
+          logger.info("Validation of web3 Instance", web3Key, "has been skipped.");
+          assert.isOk( true );
+          return;
+        }
+
         return new Promise( function ( resolve, reject ) {
           setTimeout( function () {
             resolve( web3OutValues[ web3Key ] )
@@ -334,14 +326,15 @@ const sendTransactionTestGroup = function () {
 
 const stopGethTestGroup = function () {
   let validator = function () { 
+    this.timeout( max_time_for_geth_stop );
     return gethManager
       .stop()
       .then( function () {
-        assert.isOk(true);
-        if ( web3Instances.web3WithWS ) {
+        if ( web3Instances.hasOwnProperty( "web3WithWS" )  ) {
           logger.info("Removing web3WithWS from web3Instances as it will not re-connect.");
-          delete web3Instances.web3WithWS;            
+          delete web3Instances.web3WithWS;
         }
+        assert.isOk(true);
       })
       .catch( function () {
         assert.isOk(false, "Failed to stop geth.");
