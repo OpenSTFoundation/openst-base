@@ -4,9 +4,9 @@
 const { spawn }         = require('child_process')
     , path              = require("path")
     , rootPrefix        = "../.."
-    , start_time_buffer = 20000
-    , stop_time_buffer  = 20000
-    , init_time_buffer  = 25000
+    , start_time_buffer = 15000
+    , stop_time_buffer  = 5000
+    , init_time_buffer  = 20000
 ;
 
 const gethArgs = {

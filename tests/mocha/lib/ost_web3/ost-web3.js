@@ -44,14 +44,14 @@ const mainFn = function () {
   testGroups.push( createAndValidateWeb3Instances );
   testGroups.push( sendTransactionTestGroup );
   testGroups.push( stopGethTestGroup );
-  // testGroups.push( startGethTestGroup );
-  // testGroups.push( sendTransactionTestGroup );
-  // testGroups.push( stopGethTestGroup );
-  // testGroups.push( function () {
-  //   setTimeout( function () {
-  //     process.exit(0);
-  //   }, 2000);
-  // });
+  testGroups.push( startGethTestGroup );
+  testGroups.push( sendTransactionTestGroup );
+  testGroups.push( stopGethTestGroup );
+  testGroups.push( function () {
+    setTimeout( function () {
+      process.exit(0);
+    }, 2000);
+  });
   describe(describePrefix, function () {
     let testCases
       , len       
@@ -61,13 +61,6 @@ const mainFn = function () {
 
     while( testGroups.length ) {
       testCases = testGroups.shift()();
-      // console.log("testCases", testCases);
-      // len = testCases.length;
-
-      // for( cnt=0; cnt< len; cnt++ ) {
-      //   testCase = testCases[ cnt ];
-      //   it( testCase.text, testCase.validator );
-      // }
     }
   });
 };
