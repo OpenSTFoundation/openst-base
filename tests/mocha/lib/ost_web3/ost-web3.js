@@ -235,7 +235,11 @@ const createAndValidateWeb3Instances = function () {
     web3Instances.web3WithHttp    = web3WithHttp    = new Web3( httpEndPoint );
     web3Instances.ostWeb3WithHttp = ostWeb3WithHttp = new OstWeb3( httpEndPoint );
     web3Instances.web3WithWS      = web3WithWS      = new Web3( wsEndPoint );
-    web3Instances.ostWeb3WithWS   = ostWeb3WithWS   = new OstWeb3( wsEndPoint );
+    web3Instances.ostWeb3WithWS   = ostWeb3WithWS   = new OstWeb3( wsEndPoint, null, {
+      providerOptions: {
+        killOnReconnectFailure: false
+      }
+    });
     assert.isOk(true);
   });
 
