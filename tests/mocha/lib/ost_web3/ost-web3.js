@@ -319,7 +319,7 @@ const sendTransactionTestGroup = function () {
 
     })( web3Key, validateAfter );
     it("should validate send transaction outputs with " + web3Key + ". timeout for this test case set to " + validateAfter, validator);
-    validateAfter = 0;
+    validateAfter = 1000;
   }
 };
 
