@@ -34,12 +34,13 @@ const avg_block_time              = 3000    /* Avg time required to mine a block
     , max_time_per_transaction    = (avg_block_time * no_of_conformation_blocks) + buffer_time_per_describe
     , max_time_for_geth_start     = 20000 /* Time Required for geth to start */
     , max_time_for_geth_stop      = 10000 /* Time Required for geth to stop  */
+    , amt_to_transfer_in_eth = "0.01"
 ; 
 
 // This is the main function. Let it execute once all methods are defined.
-let testGroups = [];
 const mainFn = function () { 
   // add all test cases.
+  let testGroups = [];
   testGroups.push( startGethTestGroup );
   testGroups.push( createAndValidateWeb3Instances );
   testGroups.push( sendTransactionTestGroup );
@@ -47,6 +48,7 @@ const mainFn = function () {
   testGroups.push( startGethTestGroup );
   testGroups.push( sendTransactionTestGroup );
   testGroups.push( stopGethTestGroup );
+
   describe(describePrefix, function () {
     let testCases
       , len       
@@ -67,10 +69,9 @@ const mainFn = function () {
       }, 1000);
     })
   });
-
 };
 
-const amt_to_transfer_in_eth = "0.01";
+const ;
 let basic_transaction_info = null;
 
 const expectedOutValues = {
@@ -345,7 +346,5 @@ const stopGethTestGroup = function () {
   it("should stop geth.", validator);
 };
 
-
+// Start the test.
 mainFn();
-
-

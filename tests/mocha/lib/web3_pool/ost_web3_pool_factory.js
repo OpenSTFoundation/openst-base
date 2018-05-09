@@ -5,6 +5,7 @@ const Chai            = require('chai')
     , assert          = Chai.assert
     , rootPrefix      = "../../../.."
     , OSTBase         = require( rootPrefix + "/index" )
+    , OstWeb3         = OSTBase.OstWeb3
     , Logger          = OSTBase.Logger
     , OstWeb3Pool     = OSTBase.OstWeb3Pool
     , PoolFactory     = OstWeb3Pool.Factory
@@ -30,10 +31,47 @@ const avg_block_time              = 3000    /* Avg time required to mine a block
     , buffer_time_per_describe    = 5000
     , max_time_per_transaction    = (avg_block_time * no_of_conformation_blocks) + buffer_time_per_describe
     , max_time_for_geth_start     = 20000 /* Time Required for geth to start */
-    , max_time_for_geth_stop      = 20000 /* Time Required for geth to stop  */
+    , max_time_for_geth_stop      = 10000 /* Time Required for geth to stop  */
+    , max_time_other              = 1000
+    , amt_to_transfer_in_eth      = "0.01"
 ; 
 
-const amt_to_transfer_in_eth = "0.01";
+// This is the main function. Let it execute once all methods are defined.
+const mainFn = function () { 
+  // add all test cases.
+  let testGroups = [];
+  testGroups.push( startGethTestGroup );
+  testGroups.push( createAndValidateWeb3Instances );
+  testGroups.push( sendTransactionTestGroup );
+  testGroups.push( stopGethTestGroup );
+  testGroups.push( removeDisconnectedInstances );
+  testGroups.push( startGethTestGroup );
+  testGroups.push( activeWeb3InstancesCheck );
+  testGroups.push( sendTransactionTestGroup );
+  testGroups.push( stopGethTestGroup );
+
+  describe(describePrefix, function () {
+    let testCases
+      , len       
+      , cnt
+      , testCase
+    ;
+
+    while( testGroups.length ) {
+      testCases = testGroups.shift()();
+    }
+
+    // Finally - Have a nice day.
+    it("will say have a nice day", function () {
+      logger.win("Have a nice day! The process will exit in 1 second.");
+      assert.isOk( true );
+      setTimeout( function () {
+        process.exit(0);
+      }, 1000);
+    })
+  });
+};
+
 let basic_transaction_info = null;
 
 const expectedOutValues = {
@@ -156,10 +194,11 @@ const verifyResult = function ( result ) {
   return true;
 };
 
-// Web3 Instances
+// Web3 Instances. Make sure to define keys before hand in web3Instances.
+// poolSize should be in multiples of 2.
 let testGroups = []
     , web3Instances = {}
-    , poolSize      = 2 * 1
+    , poolSize      = 2 * 2
     , willReconnectWeb3Instances  = {}
     , willDisconnectWeb3Instances = {}
 ;
@@ -170,222 +209,267 @@ const poolFactoryOptions = {
     providerOptions: {
       killOnReconnectFailure: false  
     }
-    
   }
-};
-
-const startGethTestGroup = function () {
-  describe(describePrefix + " :: Start Geth", function () {
-    it("should start geth.", async function () { 
-      this.timeout( max_time_for_geth_start );
-      await gethManager
-        .start()
-        .then( function () {
-          assert.isOk(true);
-          executeNextTestGroup();
-        })
-        .catch( function ( reason ) {
-          console.log("Failed to start geth. reason",  reason);
-          assert.isOk(false, "Failed to start geth.");
-        })
-      ;
-    });
-  });
 };
 
 
 const createAndValidateWeb3Instances = function () {
-
   
-  describe(describePrefix + " :: create and validate web3 Instances.", function () {
+  let len = poolSize
+    , instanceName
+  ;
+
+  // Populate web3Instances, willReconnectWeb3Instances & willDisconnectWeb3Instances.
+  while( len-- ) { 
+    instanceName = "web3_" + len;
+    if ( len % 2 ) { 
+      instanceName = "will_reconnect_" + instanceName;
+      willReconnectWeb3Instances[ instanceName ] = null;
+    } else {
+      instanceName = "will_disconnect_" + instanceName;
+      willDisconnectWeb3Instances[ instanceName ] = null;
+    }
+    web3Instances[ instanceName ] = null;
+  }
+
+
+
+  it("should create " + poolSize + " unique instances of web3", function () { 
+    this.timeout( max_time_other * poolSize );
     let allInstances = []
       , len = poolSize
       , web3
       , instanceName
+      , uniqueCnt
     ;
 
-    while( len-- ) {
+    uniqueCnt = 0;
+    while( len-- ) { 
+      // Get an instance from pool.
       web3 = PoolFactory.getWeb3(wsEndPoint, null, poolFactoryOptions);
-      instanceName = "web3_" + len;
+
+      // Make sure it is not duplicate.
+      if ( allInstances.indexOf( web3 ) < 0 ) {
+        uniqueCnt++;  
+      }
       allInstances.push( web3 );
-      if ( len % 2 ) {
+
+      // Determine the name.
+      instanceName = "web3_" + len;
+      if ( len % 2 ) { 
         instanceName = "will_reconnect_" + instanceName;
-        willReconnectWeb3Instances[ instanceName ] = web3;
+        // Make sure we are expecting this instance.
+        if ( willReconnectWeb3Instances.hasOwnProperty( instanceName ) ) {
+          willReconnectWeb3Instances[ instanceName ] = web3;
+        }
       } else {
         instanceName = "will_disconnect_" + instanceName;
-        willDisconnectWeb3Instances[ instanceName ] = web3;
-        web3.currentProvider.options.maxReconnectTries = 1;
-
+        // Make sure we are expecting this instance.
+        if ( willDisconnectWeb3Instances.hasOwnProperty( instanceName ) ) {
+          willDisconnectWeb3Instances[ instanceName ] = web3;
+          web3.currentProvider.options.maxReconnectTries = 1;
+        }
       }
 
       web3Instances[ instanceName ] = web3;
     }
+    assert.strictEqual(uniqueCnt, poolSize, "PoolFactory returned " + uniqueCnt + " unique instances. poolSize = " + poolSize );
+  });
 
-    it("should create " + poolSize + " unique instances of web3", function () {
-      let validInstanceCnt   = 0
-        , filteredInstances
-        , web3
+  let instanceHolders = [
+      { name: "web3Instances", holder: web3Instances }
+      , { name: "willReconnectWeb3Instances", holder: willReconnectWeb3Instances }
+      , { name: "willDisconnectWeb3Instances", holder: willDisconnectWeb3Instances }
+    ]
+    , holderData
+    , holder
+    , holderName
+    , validator
+  ;
+
+  while( instanceHolders.length ) {
+    holderData  = instanceHolders.shift();
+    holder      = holderData.holder;
+    holderName  = holderData.name;
+
+    // Create a clouser for holder.
+    validator = ( function ( holder, holderName ) {
+
+      return function () {
+        this.timeout( max_time_other );
+
+        let web3
+          , instanceName
+        ;
+
+        for( instanceName in holder ) {
+          if ( !( holder.hasOwnProperty( instanceName ) ) ) {
+            continue;
+          }
+          web3 = holder[ instanceName ];
+          assert.instanceOf( web3, OstWeb3, "web3 with name " + instanceName + " is not an instance of OstWeb3. holder: " + holderName );
+        }
+      };
+
+    })( holder, holderName );
+
+    it(holderName + " should contain only instances of OstWeb3", validator);
+  }
+};
+
+const removeDisconnectedInstances = function () {
+  let validator = function () {
+    this.timeout( max_time_other );
+
+      let web3
+        , holder = willDisconnectWeb3Instances
+        , instanceName
       ;
 
-      for( instanceName in web3Instances ) {
-        if ( !( web3Instances.hasOwnProperty(instanceName) ) ) {
+      for( instanceName in holder ) {
+        if ( !( holder.hasOwnProperty( instanceName ) ) ) {
           continue;
         }
-
         web3 = web3Instances[ instanceName ];
-        filteredInstances = allInstances.filter( function ( cWeb3 ) {
-          return cWeb3 === web3;
-        })
-
-        assert.equal( filteredInstances.length, 1, "web3 instance with name " + instanceName + " is duplicate/missing.");
-
-        validInstanceCnt ++;
-
+        assert.isTrue( web3Instances.hasOwnProperty( instanceName ), "web3Instances does not have instance with name " + instanceName );
+        delete web3Instances[ instanceName ];
+        assert.isFalse( web3Instances.hasOwnProperty( instanceName ), "web3Instances should not have instance with name " + instanceName );
       }
-      
-      assert.equal( validInstanceCnt, poolSize, "valid Instance Count is not same as poolSize");
-      
-    });
+  };
+  it("should remove disconnected instances from web3Instances", validator);
+};
 
+const activeWeb3InstancesCheck = function () {
 
+  let activePoolSize = poolSize / 2;
+
+  it("should re-use " + activePoolSize + " unique instance(s) of web3", function () { 
+    this.timeout( max_time_other * activePoolSize );
+    let allInstances = []
+      , len = poolSize
+      , web3
+      , instanceName
+      , uniqueCnt
+    ;
+
+    uniqueCnt = 0;
+    while( len-- ) { 
+      // Get an instance from pool.
+      web3 = PoolFactory.getWeb3(wsEndPoint, null, poolFactoryOptions);
+
+      // Make sure it is not duplicate.
+      if ( allInstances.indexOf( web3 ) < 0 ) {
+        uniqueCnt++;  
+      }
+      allInstances.push( web3 );
+    }
+
+    assert.strictEqual(uniqueCnt, activePoolSize, "PoolFactory returned " + uniqueCnt + " unique instances. Expected activePoolSize = " + activePoolSize );
   });
-  setTimeout( executeNextTestGroup, 10);
+};
+
+const startGethTestGroup = function () {
+  let validator = function () { 
+    this.timeout( max_time_for_geth_start );
+    logger.step("Start Geth TestGroup");
+    return gethManager
+      .start()
+      .then( function () {
+        logger.info("Geth started successfully.");
+        assert.isOk(true);
+      })
+      .catch( function ( reason ) {
+        logger.error("Failed to start geth. reason", reason);
+        assert.isOk(false, "Failed to start geth.");
+      })
+    ;
+  };
+
+  it("should start geth.", validator);
 };
 
 const sendTransactionTestGroup = function () { 
-  describe(describePrefix + " :: perform sendTransaction using all web3 instances.", function () {
-    let web3OutValues = {}
-      , web3Key
-      , currWeb3
-    ;
+  
+  let web3OutValues = {}
+    , web3Key
+    , validator
+  ;
 
-    // Initiate Transactions.
+  // Initiate Transactions.
+  validator = function () {
+    this.timeout( max_time_per_transaction );
+    let web3Key;
     for( web3Key in web3Instances ) {
       if ( !web3Instances.hasOwnProperty( web3Key ) ) {
         continue;
       }
 
-      (function ( web3Key ) {
-        currWeb3 = web3Instances[ web3Key ];
+      // Create a closure for web3Key and call sendTransactionWith.
+      ( function ( web3Key ) {
+        let currWeb3 = web3Instances[ web3Key ];
+        logger.info("Testing sendTransaction with", web3Key);
         sendTransactionWith( currWeb3 )
           .then( function ( outValues ) {
             web3OutValues[ web3Key ] = outValues;
           })
+        ;
       })( web3Key );
+
+    } // End of for loop.
+    assert.isOk( true );
+  };
+  it("should initiate send transaction flows for all instances of web3.", validator);
+  
+  // Verify Transaction results.
+  let validateAfter = max_time_per_transaction + 2000;
+  for( web3Key in web3Instances ) {
+    if ( !web3Instances.hasOwnProperty( web3Key ) ) {
+      continue;
     }
 
-    let validateAfter = max_time_per_transaction
-      , Validator
-      , callNextTestGroup = true
-    ;
-    for( web3Key in web3Instances ) { 
+    validator = (function ( web3Key, validateAfter ) { 
 
-      currWeb3 = web3Instances[ web3Key ];
-      Validator = ( function ( web3Key, validateAfter ) {
-        
-        return function ( done ) {
-          this.timeout( validateAfter + 1000 );
+      return function () {
+        this.timeout( validateAfter + 1000 );
 
-          setTimeout( function () {
-            verifyResult( web3OutValues[ web3Key ], web3Key );
-            if ( callNextTestGroup ) {
-              executeNextTestGroup();
-              callNextTestGroup = false;
-            }
-            done();
-          }, validateAfter);
-        };
-
-      })( web3Key, validateAfter );
-
-      it("should complete send transaction flow with " + web3Key + ". validateAfter = " + validateAfter, Validator);
-      validateAfter = 0;
-    }
-  });
-};
-
-
-const stopGethTestGroup = function () {
-  describe(describePrefix + " :: Stop Geth", function () {
-    it("should stop geth.", async function () { 
-      this.timeout( max_time_for_geth_stop );
-      await gethManager
-        .stop()
-        .then( function () {
-          assert.isOk(true);
-          executeNextTestGroup();
-        })
-        .catch( function () {
-          assert.isOk(false, "Failed to stop geth.");
-        })
-      ;
-    });
-  });
-};
-
-const activeWeb3InstancesCheck = function () { 
-  describe(describePrefix + " :: Pool should not return web3 with broken connections", function () { 
-    let allInstances = []
-      , len = poolSize
-      , web3
-      , instanceName
-    ;
-
-    while( len-- ) {
-      web3 = PoolFactory.getWeb3(wsEndPoint, null, poolFactoryOptions);
-      allInstances.push( web3 );
-    }
-
-    it("should return " + poolSize + " active web3 instances.", function ( done ) {
-      let validInstanceCnt   = 0
-        , filteredInstances
-        , web3
-      ;
-
-      for( instanceName in willDisconnectWeb3Instances ) {
-        if ( !( willDisconnectWeb3Instances.hasOwnProperty(instanceName) ) ) {
-          continue;
+        if ( !web3Instances[ web3Key ] ) {
+          logger.info("Validation of web3 Instance", web3Key, "has been skipped.");
+          assert.isOk( true );
+          return;
         }
 
-        web3 = willDisconnectWeb3Instances[ instanceName ];
-        filteredInstances = allInstances.filter( function ( cWeb3 ) {
-          return cWeb3 === web3;
+        return new Promise( function ( resolve, reject ) {
+          setTimeout( function () {
+            resolve( web3OutValues[ web3Key ] )
+          }, validateAfter);
         })
+        .then( function ( outValues ) {
+          verifyResult( outValues, web3Key );
+        })        
+      };
 
-        assert.equal( filteredInstances.length, 0, "web3 instance with name " + instanceName + " shouldn't have been returned from pool.");
-
-        logger.log("Declaring " + instanceName + " as dead.");
-        delete web3Instances[ instanceName ];
-      }
-      setTimeout( executeNextTestGroup, 10);
-      setTimeout(done, 200);
-    });
-  });
-  
-}
-
-// Chain the testGroups.
-
-testGroups.push( startGethTestGroup );
-testGroups.push( createAndValidateWeb3Instances );
-testGroups.push( sendTransactionTestGroup );
-testGroups.push( stopGethTestGroup );
-testGroups.push( startGethTestGroup );
-testGroups.push( activeWeb3InstancesCheck );
-testGroups.push( sendTransactionTestGroup );
-testGroups.push( stopGethTestGroup );
-testGroups.push( function () {
-  setTimeout( function () {
-    process.exit(0);  
-  }, 2000);
-});
-
-
-const executeNextTestGroup = function () {
-  if ( testGroups.length ) {
-    let testGroup = testGroups.shift();
-    testGroup();
+    })( web3Key, validateAfter );
+    it("should validate send transaction outputs with " + web3Key + ". timeout for this test case set to " + validateAfter, validator);
+    validateAfter = 1000;
   }
 };
 
-executeNextTestGroup();
+const stopGethTestGroup = function () {
+  let validator = function () { 
+    this.timeout( max_time_for_geth_stop );
+    return gethManager
+      .stop()
+      .then( function () {
+        assert.isOk(true);
+      })
+      .catch( function () {
+        assert.isOk(false, "Failed to stop geth.");
+      })
+    ;
+  };
+
+  it("should stop geth.", validator);
+};
+
+// Start the test.
+mainFn();

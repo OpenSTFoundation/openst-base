@@ -36,5 +36,6 @@ script:
   - node_modules/mocha/bin/mocha tests/mocha/lib/ost_web3/ost-web3.js --timeout 50000 --exit
   - node_modules/mocha/bin/mocha tests/mocha/lib/promise_context/promise_context.js --timeout 50000 --exit
   - node_modules/mocha/bin/mocha tests/mocha/lib/promise_context/promise_queue_manager.js --timeout 50000 --exit
+  - node_modules/mocha/bin/mocha tests/mocha/lib/web3_pool/ost_web3_pool_factory.js --timeout 50000 --exit
 after_script:
   - kill $(ps aux | grep 'geth' | awk '{print $2}')
