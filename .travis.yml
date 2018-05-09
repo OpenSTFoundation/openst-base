@@ -1,0 +1,41 @@
+dist: trusty
+language: node_js
+cache:
+  directories:
+    - ~/.ethash
+sudo: required
+branches:
+  only:
+  - master
+  - develop
+notifications:
+  email:
+    recipients:
+      - ci.report@ost.com
+    on_success: always
+    on_failure: always
+node_js:
+  - "8"
+before_install:
+  - sudo apt-get update 
+  - sudo apt-get install nodejs 
+  - sudo apt-get install npm  
+  - sudo apt-get install software-properties-common
+  - sudo add-apt-repository -y ppa:ethereum/ethereum
+  - sudo apt-get update
+  - sudo bash tests/scripts/install_geth_1_8_3.sh
+  - geth version
+install: 
+  - npm install 
+before_script:  
+  - mkdir -p ~/.ethash
+  - geth makedag 0 ~/.ethash
+  - node tests/scripts/setup_geth.js
+script:  
+  - node_modules/mocha/bin/mocha tests/mocha/lib/logger/custom_console_logger.js --timeout 5000 --exit
+  - node_modules/mocha/bin/mocha tests/mocha/lib/ost_web3/ost-web3.js --timeout 50000 --exit
+  - node_modules/mocha/bin/mocha tests/mocha/lib/promise_context/promise_context.js --timeout 50000 --exit
+  - node_modules/mocha/bin/mocha tests/mocha/lib/promise_context/promise_queue_manager.js --timeout 50000 --exit
+  - node_modules/mocha/bin/mocha tests/mocha/lib/web3_pool/ost_web3_pool_factory.js --timeout 50000 --exit
+after_script:
+  - kill $(ps aux | grep 'geth' | awk '{print $2}')
