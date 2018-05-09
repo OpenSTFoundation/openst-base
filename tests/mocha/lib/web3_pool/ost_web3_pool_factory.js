@@ -26,7 +26,7 @@ const Chai            = require('chai')
 
 
 // Some Constants. All times are in milliseconds.
-const avg_block_time              = 3000    /* Avg time required to mine a block */
+const avg_block_time              = 5000    /* Avg time required to mine a block */
     , no_of_conformation_blocks   = 4 + 6   /* We expect receipt of transactions to be received in these many blocks. */
     , buffer_time_per_describe    = 5000
     , max_time_per_transaction    = (avg_block_time * no_of_conformation_blocks) + buffer_time_per_describe
@@ -182,7 +182,7 @@ const verifyResult = function ( result ) {
     }
 
     assert.isTrue( result.hasOwnProperty( eKey ), "result is missing " + eKey + " property" );
-    assert.equal( result[eKey], expectedOutValues[ eKey ], "result does not match expected output. Property :", eKey);
+    assert.equal( result[eKey], expectedOutValues[ eKey ], "result does not match expected output. Property : " + eKey);
   }
 
   assert.isOk( result.callbackHash, "callbackHash is not ok.");
